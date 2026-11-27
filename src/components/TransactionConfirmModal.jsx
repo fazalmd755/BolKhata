@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
 import confetti from 'canvas-confetti';
-import { validateAndEnhanceIndianName } from '../utils/indianNameValidator.js';
+import { validateAndEnhanceIndianName, cleanCustomerCandidateName } from '../utils/indianNameValidator.js';
 
 export default function TransactionConfirmModal() {
   const { 
@@ -270,6 +270,7 @@ export default function TransactionConfirmModal() {
               type="text"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
+              onBlur={() => setCustomerName(prev => cleanCustomerCandidateName(prev) || prev)}
               required
               className="w-full px-3 py-2 text-sm font-semibold rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
               placeholder="e.g. Ramesh Bhai"

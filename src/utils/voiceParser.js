@@ -1,6 +1,6 @@
 import { parseRelativeDate, formatDateISO } from './dateUtils.js';
 import { parseHindiSpokenNumber, convertDevanagariNumerals } from './hindiNumberParser.js';
-import { validateAndEnhanceIndianName, cleanCustomerCandidateName, matchKnownCustomerFromText } from './indianNameValidator.js';
+import { validateAndEnhanceIndianName, cleanCustomerCandidateName, matchKnownCustomerFromText, extractHighLevelCustomerName } from './indianNameValidator.js';
 
 // Devanagari digit map
 const DEVANAGARI_DIGITS = {
@@ -270,140 +270,12 @@ export function calculateFuzzySimilarity(s1, s2) {
 }
 
 /**
- * Extracts customer name by checking known customers, grammar markers, and AI Indian Name filters
+ * Extracts customer name by utilizing High-Level Name Filter
+ * Handles Devanagari transliteration, stutter/duplicate removal, conversational noise filtering
  */
 export function extractCustomerName(text, knownCustomers = []) {
   if (!text) return { customerName: 'Customer', matchedKnown: false, customerId: null, isNewCustomer: false, isIndianNameMatch: false, nameValidationReason: '' };
-  const lower = text.toLowerCase().trim();
-
-  // Step 1: Match against known customers (Bilingual: Devanagari Hindi + English)
-  const knownMatch = matchKnownCustomerFromText(text, knownCustomers);
-  if (knownMatch) {
-    return {
-      customerName: knownMatch.name,
-      matchedKnown: true,
-      customer: knownMatch,
-      customerId: knownMatch.id,
-      isNewCustomer: false,
-      isIndianNameMatch: true,
-      nameValidationReason: 'मौजूदा पंजीकृत ग्राहक'
-    };
-  }
-
-  // Step 2: New Customer Command Pattern
-  // Examples: "new customer Rahul Sharma", "naya customer Amit", "नया ग्राहक असलम", "नया ग्राहक राहुल वर्मा", "add customer Pooja"
-  const newCustPattern = /(?:new\s+customer|naya\s+customer|naya\s+grahak|naye\s+grahak|naya\s+khata|add\s+new\s+customer|add\s+customer|नया\s*ग्राहक|नए\s*ग्राहक|नया\s*कस्टमर|नया\s*खाता)\s+([A-Za-z\u0900-\u097F]+(?:\s+[A-Za-z\u0900-\u097F]+){0,2})/i;
-  const newCustMatch = text.match(newCustPattern);
-  if (newCustMatch && newCustMatch[1]) {
-    const val = validateAndEnhanceIndianName(newCustMatch[1], knownCustomers);
-    if (val.isValid && val.cleanName !== 'Customer') {
-      return {
-        customerName: val.cleanName,
-        matchedKnown: val.isKnownCustomer,
-        customer: val.matchedCustomer || null,
-        customerId: val.matchedCustomer ? val.matchedCustomer.id : null,
-        isNewCustomer: !val.isKnownCustomer,
-        isIndianNameMatch: val.isIndianNameMatch,
-        nameValidationReason: val.reasoning
-      };
-    }
-  }
-
-  // Step 3: Hinglish & Devanagari Marker Patterns
-  // Matches 1 to 3 words before marker: "ko|ne|ka|ke|ki|se|to|from" OR "को|ने|का|के|की|से"
-  // e.g. "Aslam Khan ko", "Mohammad Aslam ko", "असलम ग्राहक को", "असलम खान को", "Karan ko", "Sunita se"
-  const markerRegex = /(?:^|\s)([A-Za-z\u0900-\u097F]+(?:\s+[A-Za-z\u0900-\u097F]+){0,2})\s+(?:ko|ne|ka|ke|ki|se|to|from|को|ने|का|के|की|से)\b/i;
-  const match = text.match(markerRegex);
-  if (match && match[1]) {
-    const val = validateAndEnhanceIndianName(match[1], knownCustomers);
-    if (val.isValid && val.cleanName !== 'Customer') {
-      return {
-        customerName: val.cleanName,
-        matchedKnown: val.isKnownCustomer,
-        customer: val.matchedCustomer || null,
-        customerId: val.matchedCustomer ? val.matchedCustomer.id : null,
-        isNewCustomer: !val.isKnownCustomer,
-        isIndianNameMatch: val.isIndianNameMatch,
-        nameValidationReason: val.reasoning
-      };
-    }
-  }
-
-  // Fallback: check if "from X" or "X paid" / "se X"
-  const fromMatch = lower.match(/(?:from|se|से)\s+([a-zA-Z\u0900-\u097F]+(?:\s+[a-zA-Z\u0900-\u097F]+)?)/i);
-  if (fromMatch && fromMatch[1]) {
-    const val = validateAndEnhanceIndianName(fromMatch[1], knownCustomers);
-    if (val.isValid && val.cleanName !== 'Customer') {
-      return {
-        customerName: val.cleanName,
-        matchedKnown: val.isKnownCustomer,
-        customer: val.matchedCustomer || null,
-        customerId: val.matchedCustomer ? val.matchedCustomer.id : null,
-        isNewCustomer: !val.isKnownCustomer,
-        isIndianNameMatch: val.isIndianNameMatch,
-        nameValidationReason: val.reasoning
-      };
-    }
-  }
-
-  // Step 4: Positional / Structural Name Extraction for New Customers
-  // When merchant simply says "[Name] [Amount] [udhar/jama]" without "ko/ne/se"
-  // e.g. "असलम ग्राहक 500 उधार", "करन 500 उधार", "Aslam Khan 500 udhar", "Rahul Sharma 1200 jama"
-  const amountOrKeywordPattern = /(?:\b\d+|\b(?:₹|rs|inr|rupaye|sau|hazar|hazaar|lakh|ekso|eksau|doso|dosau|dosou|teenso|teensau|teensou|charso|chaarso|panso|paanso|panchso|paanchso|chhehso|saatso|aathso|nauso|dedhso|dhaiso|ekhazar|ekhazaar|dohazar|dohazaar|teenhazar|charhazar|panchhazar|dashazar|ek|do|teen|chaar|char|paanch|panch|chhah|cheh|chhe|saat|aath|nau|das|gyarah|barah|terah|chaudah|pandrah|solah|satrah|atharah|unnis|bees|tees|chalis|pachas|saath|sattar|assi|nabbe|udhar|udhaar|jama|cash|payment|credit|baki|baaki)\b|(?:^|\s)(?:एकहजार|दोहजार|तीन्हजार|चारहजार|पांचहजार|दसहजार|एकसौ|दोसौ|तीनसौ|चारसौ|पांचसौ|पाँचसौ|छहसौ|सातसौ|आठसौ|नौसौ|डेढ़सौ|ढाईसौ|दो\s*सौ|तीन\s*सौ|चार\s*सौ|पांच\s*सौ|पाँच\s*सौ|एक|दो|तीन|चार|पांच|पाँच|छह|सात|आठ|नौ|दस|बीस|तीस|चालीस|पचास|सौ|हज़ार|हजार|लाख|उधार|जमा|कैश|रुपये|रुपए|रुपया)(?:\s|$))/i;
-  
-  const amountIndex = text.search(amountOrKeywordPattern);
-  if (amountIndex > 0) {
-    const candidateSub = text.substring(0, amountIndex).trim();
-    const val = validateAndEnhanceIndianName(candidateSub, knownCustomers);
-    if (val.isValid && val.cleanName !== 'Customer') {
-      return {
-        customerName: val.cleanName,
-        matchedKnown: val.isKnownCustomer,
-        customer: val.matchedCustomer || null,
-        customerId: val.matchedCustomer ? val.matchedCustomer.id : null,
-        isNewCustomer: !val.isKnownCustomer,
-        isIndianNameMatch: val.isIndianNameMatch,
-        nameValidationReason: val.reasoning
-      };
-    }
-  }
-
-  // Step 5: Direct Scan for Recognized Indian Names in transcript
-  // If the merchant spoke an Indian name anywhere in the transcript (e.g. "500 udhar diya Aslam ko", "Aslam", "असलम")
-  const rawWords = text.split(/\s+/).filter(Boolean);
-  for (let i = 0; i < rawWords.length; i++) {
-    // Try 2-word full name first (e.g. "Aslam Khan", "Rahul Sharma", "असलम खान")
-    if (i + 1 < rawWords.length) {
-      const twoWords = `${rawWords[i]} ${rawWords[i + 1]}`;
-      const val2 = validateAndEnhanceIndianName(twoWords, knownCustomers);
-      if (val2.isValid && val2.isIndianNameMatch && val2.cleanName !== 'Customer') {
-        return {
-          customerName: val2.cleanName,
-          matchedKnown: val2.isKnownCustomer,
-          customer: val2.matchedCustomer || null,
-          customerId: val2.matchedCustomer ? val2.matchedCustomer.id : null,
-          isNewCustomer: !val2.isKnownCustomer,
-          isIndianNameMatch: true,
-          nameValidationReason: val2.reasoning
-        };
-      }
-    }
-    // Try single word
-    const val1 = validateAndEnhanceIndianName(rawWords[i], knownCustomers);
-    if (val1.isValid && val1.isIndianNameMatch && val1.cleanName !== 'Customer') {
-      return {
-        customerName: val1.cleanName,
-        matchedKnown: val1.isKnownCustomer,
-        customer: val1.matchedCustomer || null,
-        customerId: val1.matchedCustomer ? val1.matchedCustomer.id : null,
-        isNewCustomer: !val1.isKnownCustomer,
-        isIndianNameMatch: true,
-        nameValidationReason: val1.reasoning
-      };
-    }
-  }
-
-  return { customerName: 'Customer', matchedKnown: false, customer: null, customerId: null, isNewCustomer: false, isIndianNameMatch: false, nameValidationReason: '' };
+  return extractHighLevelCustomerName(text, knownCustomers);
 }
 
 /**

@@ -3,10 +3,18 @@
 
 // Common Indian Given Names (Hindu, Muslim, Sikh, Christian, Jain)
 export const INDIAN_GIVEN_NAMES = new Set([
-  // Popular Names - A
+  // Muslim / Urdu Origin
   'aslam', 'akram', 'arif', 'imran', 'salman', 'rashid', 'shahid', 'tariq', 'wasim', 'sameer',
   'sohail', 'firoz', 'zubair', 'bilal', 'hamza', 'irfan', 'sultan', 'rehman', 'karim', 'ali',
   'ahmed', 'azam', 'ashraf', 'altaf', 'ayub', 'anwar', 'amjad', 'afzal', 'abid', 'adil',
+  'abdul', 'abdullah', 'danish', 'javed', 'munna', 'guddu', 'kallu', 'saddam', 'faizan', 'rizwan',
+  'sajid', 'aamir', 'shoaib', 'zakir', 'kaleem', 'shamim', 'naeem', 'shakeel', 'ayaz', 'ayaan',
+  'kaif', 'faiz', 'kabir', 'zafar', 'haider', 'hasan', 'habib', 'naseem', 'shabbir', 'basheer',
+  'lateef', 'mujeeb', 'manzoor', 'shamsher', 'saleem', 'abbas', 'mustafa', 'qasim', 'imtiyaz',
+  'aftab', 'shahnawaz', 'shahbaz', 'parvez', 'arbaz', 'irshad', 'shamshad', 'dilshad', 'naushad',
+  'golu',
+
+  // Hindu / Traditional - A
   'amit', 'sumit', 'rohit', 'mohit', 'ankit', 'vikas', 'vishal', 'vijay', 'ajay', 'sanjay',
   'deepak', 'pankaj', 'manoj', 'praveen', 'pradeep', 'sunil', 'anil', 'karan', 'arjun', 'rahul',
   'rohan', 'varun', 'nitin', 'sachin', 'gaurav', 'aakash', 'akash', 'vivek', 'alok', 'ashok',
@@ -233,11 +241,97 @@ export const CUSTOMER_ROLE_WORDS = [
   'नंबर', 'फोन', 'मोबाइल', 'को', 'ने', 'से', 'का', 'के', 'की'
 ];
 
+// Comprehensive Stopwords, conversational fillers, ledger actions, and grammatical particles
+export const STOPWORDS_AND_FILLERS = new Set([
+  // Hindi & Urdu greetings / fillers / honorifics
+  'अरे', 'सुनो', 'सुन', 'भाई', 'भैया', 'हेलो', 'नमस्ते', 'जी', 'साहब', 'साहेब', 'बाबू',
+  'अंकल', 'आंटी', 'चाचा', 'काका', 'सेठ', 'ओ', 'हे', 'बोल', 'बोलो',
+  // Hinglish greetings / fillers
+  'arre', 'suno', 'sun', 'bhai', 'bhaiya', 'hello', 'hi', 'hey', 'ji', 'sahab', 'saheb',
+  'babu', 'sir', 'seth', 'chacha', 'uncle', 'aunty', 'o', 'bol', 'bolo', 'namaste',
+
+  // Actions / Ledger verbs
+  'लिखो', 'लिख', 'लिखदो', 'लिखा', 'लिखना', 'एंट्री', 'करो', 'कर', 'करदो', 'करवाया', 'करा',
+  'करे', 'करना', 'किया', 'किए', 'डालो', 'डाल', 'ले', 'दे', 'गया', 'गए', 'गई', 'था', 'थी', 'थे',
+  'आया', 'आए', 'आई', 'भेजा', 'दिया', 'दिए', 'लिया', 'लिए', 'मिला', 'मिले', 'चुकाया', 'होगा',
+  'होगी', 'होंगे', 'रहेगा', 'चाहिए', 'बताओ', 'बताएं', 'देखना', 'देखो',
+  // Hinglish actions / verbs
+  'likho', 'likh', 'likhdo', 'entry', 'karo', 'kar', 'karwaya', 'kara', 'kare', 'karna',
+  'kiya', 'kiye', 'dalo', 'daalo', 'dal', 'daal', 'le', 'de', 'gaya', 'gaye', 'gayi', 'tha',
+  'thi', 'the', 'aaya', 'aaye', 'aayi', 'bheja', 'diya', 'diye', 'liya', 'liye', 'mila', 'mile',
+  'chukaya', 'hoga', 'hogi', 'honge', 'rahega', 'chahiye', 'batao', 'dekho', 'add', 'save',
+
+  // Customer roles & qualifiers
+  'नया', 'नए', 'नई', 'ग्रह', 'ग्राहक', 'कस्टमर', 'खाता', 'दुकान', 'बंदा', 'पार्टी',
+  'naya', 'naye', 'nayi', 'new', 'grahak', 'grah', 'customer', 'cust', 'khata', 'dokan',
+  'dukaan', 'banda', 'party',
+
+  // Grammatical particles & prepositions
+  'में', 'ने', 'से', 'को', 'का', 'के', 'की', 'पे', 'पर', 'वाला', 'वाली', 'वाले',
+  'ko', 'ne', 'se', 'ka', 'ke', 'ki', 'me', 'mein', 'pe', 'par', 'to', 'from', 'in', 'on',
+  'at', 'for', 'wala', 'wali', 'wale', 'off',
+
+  // Transaction terms, goods, and amounts
+  'उधार', 'जमा', 'बाकी', 'बकाया', 'पकाया', 'पबाया', 'कैश', 'बैलेंस', 'हिसाब', 'रुपये', 'रुपए',
+  'रुपया', '₹', 'रू', 'सौ', 'हजार', 'हज़ार', 'लाख', 'करोड़', 'पैसा', 'पैसे',
+  'सामान', 'माल', 'चीज', 'चीजें', 'सौदा',
+  'udhar', 'udhaar', 'jama', 'baki', 'baaki', 'bakaya', 'pakaya', 'cash', 'credit', 'payment',
+  'balance', 'hisab', 'rupaye', 'rs', 'inr', 'paise', 'sau', 'hazar', 'hazaar', 'lakh', 'cr',
+  'one', 'two', 'three', 'hundred', 'thousand',
+  'samaan', 'saaman', 'maal', 'item', 'items', 'cheez', 'chij', 'sauda',
+
+  // Temporal words
+  'आज', 'कल', 'परसों', 'सुबह', 'शाम', 'दोपहर', 'रात', 'तारीख', 'समय', 'अभी',
+  'aaj', 'kal', 'parso', 'subah', 'sham', 'shaam', 'dopahar', 'raat', 'date', 'tarikh', 'time', 'abhi', 'now', 'today', 'yesterday'
+]);
+
+/**
+ * Deduplicates repeated tokens and stutters
+ * e.g. ['अब्दुल', 'अब्दुल'] -> ['अब्दुल']
+ * e.g. ['Abdul', 'Abdul'] -> ['Abdul']
+ * e.g. ['Mohit', 'Kumar', 'Mohit', 'Kumar'] -> ['Mohit', 'Kumar']
+ */
+export function deduplicateTokens(tokens) {
+  if (!tokens || tokens.length === 0) return [];
+  const result = [];
+  for (let i = 0; i < tokens.length; i++) {
+    let cur = tokens[i].trim();
+    if (!cur) continue;
+    // Split repeated word (e.g. AbdulAbdul -> Abdul, असलमअसलम -> असलम)
+    if (cur.length >= 6 && cur.length % 2 === 0) {
+      const half = cur.length / 2;
+      const h1 = cur.slice(0, half);
+      const h2 = cur.slice(half);
+      if (h1.toLowerCase() === h2.toLowerCase()) {
+        cur = h1;
+      }
+    }
+    // Skip if identical to previous token
+    if (result.length > 0 && result[result.length - 1].toLowerCase() === cur.toLowerCase()) {
+      continue;
+    }
+    result.push(cur);
+  }
+
+  // Deduplicate repeated 2-word phrases: ['Mohit', 'Kumar', 'Mohit', 'Kumar'] -> ['Mohit', 'Kumar']
+  if (result.length === 4 && result[0].toLowerCase() === result[2].toLowerCase() && result[1].toLowerCase() === result[3].toLowerCase()) {
+    return [result[0], result[1]];
+  }
+
+  // Deduplicate repeated 3-word phrases: ['Mohammad', 'Aslam', 'Khan', 'Mohammad', 'Aslam', 'Khan']
+  if (result.length === 6 && result[0].toLowerCase() === result[3].toLowerCase() && result[1].toLowerCase() === result[4].toLowerCase() && result[2].toLowerCase() === result[5].toLowerCase()) {
+    return [result[0], result[1], result[2]];
+  }
+
+  return result;
+}
+
 /**
  * Strips conversational filler, shop roles, honorifics, and grammatical markers from candidate name
  * e.g. "असलम ग्राहक" -> "असलम"
  * e.g. "Aslam grahak ko" -> "Aslam"
  * e.g. "naya grahak Rahul Sharma" -> "Rahul Sharma"
+ * e.g. "अब्दुल अब्दुल" -> "अब्दुल"
  */
 export function cleanCustomerCandidateName(rawName) {
   if (!rawName) return '';
@@ -246,7 +340,7 @@ export function cleanCustomerCandidateName(rawName) {
   // 1. Strip currency symbols, numbers, punctuation
   str = str.replace(/[₹$€£¥\d\.,\/#!$%\^&\*;:{}=\-_`~()\[\]<>?|\\+]/g, ' ').trim();
 
-  // 2. Strip leading conversational phrases, role words, and speech recognition mis-transcriptions (like "नया ग्रह", "नया", "ग्रह")
+  // 2. Strip leading conversational phrases, role words, and speech recognition mis-transcriptions
   for (let p = 0; p < 4; p++) {
     str = str.replace(/^(?:naya\s+grahak|naye\s+grahak|naya\s+grah|naye\s+grah|naya\s+customer|naye\s+customer|naya\s+khata|new\s+customer|add\s+customer|naya\s+banda|naya\s+party|नया\s*ग्राहक|नए\s*ग्राहक|नया\s*ग्रह|नए\s*ग्रह|नया\s*कस्टमर|नए\s*कस्टमर|नया\s*खाता|नया\s*बंदा|नया\s*पार्टी|नया|नए|नई|new|naya|naye)\s+/gi, '').trim();
     str = str.replace(/^(?:grahak|customer|grah|cust|party|banda|ग्राहक|कस्टमर|ग्रह|पार्टी|बंदा|खाता|दुकान)\s+/gi, '').trim();
@@ -262,7 +356,12 @@ export function cleanCustomerCandidateName(rawName) {
     str = str.trim().replace(TRAILING_PATTERN, '').trim();
   }
 
-  return str.replace(/\s+/g, ' ').trim();
+  // 4. Token filter & Deduplication
+  const rawWords = str.split(/\s+/).filter(Boolean);
+  const filteredWords = rawWords.filter(w => !STOPWORDS_AND_FILLERS.has(w.toLowerCase()));
+  const dedupedWords = deduplicateTokens(filteredWords);
+
+  return dedupedWords.join(' ').trim();
 }
 
 /**
@@ -380,14 +479,10 @@ export function validateAndEnhanceIndianName(candidate, knownCustomers = []) {
       };
     }
 
-    // Check multi-word Devanagari compound (e.g. "असलम खान")
-    const JUNK_DEV_PARTICLES = new Set([
-      'में', 'ने', 'से', 'को', 'का', 'के', 'की', 'पे', 'पर', 'वाला', 'वाली',
-      'बाकी', 'बकाया', 'पकाया', 'पबाया', 'लिया', 'दिया', 'दिए', 'ले', 'गया', 'गए', 'गई',
-      'रुपये', 'रुपए', 'रुपया', '₹', 'रू', 'नया', 'नए', 'नई', 'ग्रह', 'ग्राहक', 'कस्टमर', 'खाता',
-      'बंदा', 'पार्टी', 'भैया', 'भाई', 'जी', 'साहब', 'बाबू'
-    ]);
-    const devWords = cleaned.split(/\s+/).filter(Boolean).filter(w => !JUNK_DEV_PARTICLES.has(w));
+    // Check multi-word Devanagari compound (e.g. "असलम खान", "अब्दुल अब्दुल")
+    const devWords = deduplicateTokens(
+      cleaned.split(/\s+/).filter(Boolean).filter(w => !STOPWORDS_AND_FILLERS.has(w))
+    );
     if (devWords.length === 0) {
       return {
         isValid: false,
@@ -429,15 +524,10 @@ export function validateAndEnhanceIndianName(candidate, knownCustomers = []) {
   }
 
   // 4. English / Latin Indian Name Analysis
-  const ACTION_WORDS = new Set([
-    'udhar', 'udhaar', 'jama', 'diya', 'diye', 'mila', 'mile', 'bheja', 'lena', 'dena',
-    'rupaye', 'rs', 'paise', 'cash', 'payment', 'credit', 'online', 'phone', 'entry',
-    'naya', 'naye', 'new', 'grahak', 'grah', 'customer', 'cust', 'party', 'banda', 'khata',
-    'उधार', 'जमा', 'दिया', 'दिए', 'मिला', 'रुपये', 'रुपए', 'रुपया', 'कैश',
-    'नया', 'नए', 'नई', 'ग्रह', 'ग्राहक', 'कस्टमर', 'खाता', 'बंदा', 'पार्टी'
-  ]);
   const rawWords = cleaned.split(/\s+/).filter(Boolean);
-  const words = rawWords.filter(w => !ACTION_WORDS.has(w.toLowerCase()));
+  const words = deduplicateTokens(
+    rawWords.filter(w => !STOPWORDS_AND_FILLERS.has(w.toLowerCase()))
+  );
   if (words.length === 0) {
     return {
       isValid: false,
@@ -487,5 +577,165 @@ export function validateAndEnhanceIndianName(candidate, knownCustomers = []) {
     isKnownCustomer: false,
     isIndianNameMatch: false,
     reasoning: 'अमान्य ग्राहक नाम'
+  };
+}
+
+/**
+ * High-Level Customer Name Extraction & AI Filter
+ * Extracts strictly pure customer names from spoken Hindi/Hinglish sentences.
+ * Automatically handles:
+ * 1. Name duplication & stutter (e.g. "अब्दुल अब्दुल" -> "Abdul", "Abdul Abdul" -> "Abdul")
+ * 2. Conversational fillers & noise ("अरे भाई सुनो अब्दुल का 500 लिखो" -> "Abdul")
+ * 3. Registered customer recognition across Devanagari & English
+ * 4. Certified Indian name validation & transliteration
+ */
+export function extractHighLevelCustomerName(text, knownCustomers = []) {
+  if (!text || typeof text !== 'string') {
+    return {
+      customerName: 'Customer',
+      matchedKnown: false,
+      customer: null,
+      customerId: null,
+      isNewCustomer: false,
+      isIndianNameMatch: false,
+      nameValidationReason: ''
+    };
+  }
+
+  // Step 1: Check known registered customers first (Devanagari & English)
+  const matchedKnown = matchKnownCustomerFromText(text, knownCustomers);
+  if (matchedKnown) {
+    return {
+      customerName: matchedKnown.name,
+      matchedKnown: true,
+      customer: matchedKnown,
+      customerId: matchedKnown.id,
+      isNewCustomer: false,
+      isIndianNameMatch: true,
+      nameValidationReason: 'मौजूदा पंजीकृत ग्राहक'
+    };
+  }
+
+  // Step 2: Clean text and tokenize
+  const cleanStr = text.replace(/[₹$€£¥\d\.,\/#!$%\^&\*;:{}=\-_`~()\[\]<>?|\\+]/g, ' ');
+  const rawTokens = cleanStr.split(/\s+/).filter(Boolean);
+  const withoutStopwords = rawTokens.filter(w => !STOPWORDS_AND_FILLERS.has(w.toLowerCase()));
+  const dedupedTokens = deduplicateTokens(withoutStopwords);
+
+  // Step 3: Recognized Indian Names Scan on Deduped Tokens (highest precision)
+  // Check 2-word combinations first
+  for (let i = 0; i < dedupedTokens.length - 1; i++) {
+    const pair = `${dedupedTokens[i]} ${dedupedTokens[i + 1]}`;
+    const val = validateAndEnhanceIndianName(pair, knownCustomers);
+    if (val.isValid && val.isIndianNameMatch && val.cleanName !== 'Customer') {
+      return {
+        customerName: val.cleanName,
+        matchedKnown: val.isKnownCustomer,
+        customer: val.matchedCustomer || null,
+        customerId: val.matchedCustomer ? val.matchedCustomer.id : null,
+        isNewCustomer: !val.isKnownCustomer,
+        isIndianNameMatch: true,
+        nameValidationReason: val.reasoning
+      };
+    }
+  }
+
+  // Check single words in deduped tokens against Indian names / Devanagari dictionary
+  for (const token of dedupedTokens) {
+    const val = validateAndEnhanceIndianName(token, knownCustomers);
+    if (val.isValid && val.isIndianNameMatch && val.cleanName !== 'Customer') {
+      return {
+        customerName: val.cleanName,
+        matchedKnown: val.isKnownCustomer,
+        customer: val.matchedCustomer || null,
+        customerId: val.matchedCustomer ? val.matchedCustomer.id : null,
+        isNewCustomer: !val.isKnownCustomer,
+        isIndianNameMatch: true,
+        nameValidationReason: val.reasoning
+      };
+    }
+  }
+
+  // Step 4: Syntactic Pattern: "new customer / naya grahak / naya grah / naya khata [Name]"
+  const newCustPattern = /(?:new\s+customer|naya\s+customer|naya\s+grahak|naye\s+grahak|naya\s+grah|naye\s+grah|naya\s+khata|add\s+new\s+customer|add\s+customer|नया\s*ग्राहक|नए\s*ग्राहक|नया\s*ग्रह|नए\s*ग्रह|नया\s*कस्टमर|नया\s*खाता)\s+([A-Za-z\u0900-\u097F]+(?:\s+[A-Za-z\u0900-\u097F]+){0,2})/i;
+  const newCustMatch = text.match(newCustPattern);
+  if (newCustMatch && newCustMatch[1]) {
+    const val = validateAndEnhanceIndianName(newCustMatch[1], knownCustomers);
+    if (val.isValid && val.cleanName !== 'Customer') {
+      return {
+        customerName: val.cleanName,
+        matchedKnown: val.isKnownCustomer,
+        customer: val.matchedCustomer || null,
+        customerId: val.matchedCustomer ? val.matchedCustomer.id : null,
+        isNewCustomer: !val.isKnownCustomer,
+        isIndianNameMatch: val.isIndianNameMatch,
+        nameValidationReason: val.reasoning
+      };
+    }
+  }
+
+  // Step 5: Syntactic Pattern: Marker [Name] "ko|ne|ka|ke|ki|se|को|ने|का|के|की|से"
+  const markerRegex = /(?:^|\s)([A-Za-z\u0900-\u097F]+(?:\s+[A-Za-z\u0900-\u097F]+){0,2})\s+(?:ko|ne|ka|ke|ki|se|to|from|को|ने|का|के|की|से)\b/i;
+  const markerMatch = text.match(markerRegex);
+  if (markerMatch && markerMatch[1]) {
+    const val = validateAndEnhanceIndianName(markerMatch[1], knownCustomers);
+    if (val.isValid && val.cleanName !== 'Customer') {
+      return {
+        customerName: val.cleanName,
+        matchedKnown: val.isKnownCustomer,
+        customer: val.matchedCustomer || null,
+        customerId: val.matchedCustomer ? val.matchedCustomer.id : null,
+        isNewCustomer: !val.isKnownCustomer,
+        isIndianNameMatch: val.isIndianNameMatch,
+        nameValidationReason: val.reasoning
+      };
+    }
+  }
+
+  // Step 6: Positional pattern before Amount / Transaction Keyword
+  const amountOrKeywordPattern = /(?:\b\d+|\b(?:₹|rs|inr|rupaye|sau|hazar|hazaar|lakh|ekso|eksau|doso|dosau|dosou|teenso|teensau|teensou|charso|chaarso|panso|paanso|panchso|paanchso|chhehso|saatso|aathso|nauso|dedhso|dhaiso|ekhazar|ekhazaar|dohazar|dohazaar|teenhazar|charhazar|panchhazar|dashazar|ek|do|teen|chaar|char|paanch|panch|chhah|cheh|chhe|saat|aath|nau|das|gyarah|barah|terah|chaudah|pandrah|solah|satrah|atharah|unnis|bees|tees|chalis|pachas|saath|sattar|assi|nabbe|udhar|udhaar|jama|cash|payment|credit|baki|baaki)\b|(?:^|\s)(?:एकहजार|दोहजार|तीन्हजार|चारहजार|पांचहजार|दसहजार|एकसौ|दोसौ|तीनसौ|चारसौ|पांचसौ|पाँचसौ|छहसौ|सातसौ|आठसौ|नौसौ|डेढ़सौ|ढाईसौ|दो\s*सौ|तीन\s*सौ|चार\s*सौ|पांच\s*सौ|पाँच\s*सौ|एक|दो|तीन|चार|पांच|पाँच|छह|सात|आठ|नौ|दस|बीस|तीस|चालीस|पचास|सौ|हज़ार|हजार|लाख|उधार|जमा|कैश|रुपये|रुपए|रुपया)(?:\s|$))/i;
+  const amountIndex = text.search(amountOrKeywordPattern);
+  if (amountIndex > 0) {
+    const candidateSub = text.substring(0, amountIndex).trim();
+    const val = validateAndEnhanceIndianName(candidateSub, knownCustomers);
+    if (val.isValid && val.cleanName !== 'Customer') {
+      return {
+        customerName: val.cleanName,
+        matchedKnown: val.isKnownCustomer,
+        customer: val.matchedCustomer || null,
+        customerId: val.matchedCustomer ? val.matchedCustomer.id : null,
+        isNewCustomer: !val.isKnownCustomer,
+        isIndianNameMatch: val.isIndianNameMatch,
+        nameValidationReason: val.reasoning
+      };
+    }
+  }
+
+  // Step 7: Fallback to remaining deduped non-stopword tokens (e.g. rare regional names)
+  if (dedupedTokens.length >= 1 && dedupedTokens.length <= 3) {
+    const candidateName = dedupedTokens.join(' ');
+    const val = validateAndEnhanceIndianName(candidateName, knownCustomers);
+    if (val.isValid && val.cleanName !== 'Customer') {
+      return {
+        customerName: val.cleanName,
+        matchedKnown: val.isKnownCustomer,
+        customer: val.matchedCustomer || null,
+        customerId: val.matchedCustomer ? val.matchedCustomer.id : null,
+        isNewCustomer: !val.isKnownCustomer,
+        isIndianNameMatch: val.isIndianNameMatch,
+        nameValidationReason: val.reasoning
+      };
+    }
+  }
+
+  // Fallback
+  return {
+    customerName: 'Customer',
+    matchedKnown: false,
+    customer: null,
+    customerId: null,
+    isNewCustomer: false,
+    isIndianNameMatch: false,
+    nameValidationReason: ''
   };
 }
