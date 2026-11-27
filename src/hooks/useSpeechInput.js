@@ -92,24 +92,42 @@ export function useSpeechInput({
     // 1. Native Android Implementation via Capacitor
     if (Capacitor.isNativePlatform()) {
       try {
-        const hasPerm = await CapSpeechRecognition.hasPermissions();
-        if (!hasPerm.permission) {
-          const req = await CapSpeechRecognition.requestPermissions();
-          if (!req.permission) {
-            setErrorMessage('माइक की अनुमति नहीं मिली। कृपया ऐप सेटिंग्स में ऑडियो परमिशन दें।');
-            return;
+        let hasPerm = false;
+        try {
+          const perm = await CapSpeechRecognition.checkPermissions();
+          hasPerm = perm?.speechRecognition === 'granted';
+        } catch (e) {
+          console.warn('checkPermissions check:', e);
+        }
+
+        if (!hasPerm) {
+          try {
+            const req = await CapSpeechRecognition.requestPermissions();
+            hasPerm = req?.speechRecognition === 'granted';
+          } catch (e) {
+            console.warn('requestPermissions request:', e);
           }
         }
 
-        const isAvail = await CapSpeechRecognition.available();
-        if (!isAvail.available) {
-          setErrorMessage('डिवाइस पर वॉयस सर्विस उपलब्ध नहीं है। कृपया गूगल ऐप या वॉयस डेटा चेक करें।');
+        if (!hasPerm) {
+          setErrorMessage('माइक की अनुमति नहीं मिली। कृपया ऐप सेटिंग्स में रिकॉर्ड ऑडियो (Record Audio) परमिशन दें।');
           return;
+        }
+
+        try {
+          const isAvail = await CapSpeechRecognition.available();
+          if (isAvail && isAvail.available === false) {
+            setErrorMessage('डिवाइस पर वॉयस सर्विस उपलब्ध नहीं है। कृपया गूगल ऐप या वॉयस टाइपिंग चेक करें।');
+            return;
+          }
+        } catch (e) {
+          console.warn('SpeechRecognition available check warning:', e);
         }
 
         // Add listener for partial results
         await CapSpeechRecognition.removeAllListeners();
-        CapSpeechRecognition.addListener('partialResults', (data) => {
+
+        await CapSpeechRecognition.addListener('partialResults', (data) => {
           if (data && data.matches && data.matches.length > 0) {
             const currentSpoken = data.matches[0];
             setInterimText(currentSpoken);
@@ -123,6 +141,17 @@ export function useSpeechInput({
           }
         });
 
+        await CapSpeechRecognition.addListener('listeningState', (data) => {
+          if (data?.status === 'started') {
+            isListeningRef.current = true;
+            setIsListening(true);
+          } else if (data?.status === 'stopped') {
+            if (isListeningRef.current && !manualStopRef.current) {
+              stopListening();
+            }
+          }
+        });
+
         isListeningRef.current = true;
         setIsListening(true);
 
@@ -131,26 +160,51 @@ export function useSpeechInput({
           stopListening();
         }, maxSessionTimeoutMs);
 
-        await CapSpeechRecognition.start({
-          language: activeLang,
-          maxResults: 2,
-          prompt: 'बोलिए... (Speak now)',
-          partialResults: true,
-          popup: false
-        });
+        try {
+          await CapSpeechRecognition.start({
+            language: activeLang,
+            maxResults: 2,
+            prompt: 'बोलिए... (Speak now)',
+            partialResults: true,
+            popup: false
+          });
+        } catch (silentErr) {
+          console.warn('Silent start failed, falling back to popup speech prompt:', silentErr);
+          const popupRes = await CapSpeechRecognition.start({
+            language: activeLang,
+            maxResults: 2,
+            prompt: 'बोलिए... (Speak now)',
+            partialResults: false,
+            popup: true
+          });
+          if (popupRes?.matches && popupRes.matches.length > 0) {
+            const spoken = popupRes.matches[0];
+            setTranscript(spoken);
+            accumulatedRef.current = spoken;
+            setIsListening(false);
+            isListeningRef.current = false;
+            if (onResult) onResult(spoken);
+            return;
+          }
+        }
       } catch (err) {
         console.error('Native speech recognition failed:', err);
         isListeningRef.current = false;
         setIsListening(false);
-        setErrorMessage('वॉयस पहचान में त्रुटि हुई: ' + (err.message || 'कृपया पुनः प्रयास करें।'));
+        setErrorMessage('वॉयस पहचान में त्रुटि हुई: ' + (err.message || 'कृपया दोबारा माइक दबाएं या लिखकर लिखें।'));
       }
       return;
     }
 
     // 2. Browser Web Speech API Implementation
+    if (typeof window !== 'undefined' && !window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+      setErrorMessage('मोबाइल ब्राउज़र में माइक सिर्फ HTTPS या Android APK में काम करता है। कृपया APK में चलाएं या नीचे कीबोर्ड से टाइप करें।');
+      return;
+    }
+
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) {
-      setErrorMessage('इस ब्राउज़र में वॉयस इनपुट समर्थित नहीं है। नीचे कीबोर्ड से टाइप करें।');
+      setErrorMessage('इस ब्राउज़र में वॉयस इनपुट समर्थित नहीं है। कृपया Chrome ब्राउज़र का उपयोग करें या Android APK में चलाएं।');
       return;
     }
 
@@ -162,7 +216,10 @@ export function useSpeechInput({
       const recognition = new SpeechRecognitionAPI();
       webRecognitionRef.current = recognition;
 
-      recognition.continuous = true;
+      const isMobileBrowser = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+      // On mobile browsers, continuous=true frequently triggers instant abort/hang in Chromium
+      recognition.continuous = !isMobileBrowser;
       recognition.interimResults = true;
       recognition.lang = activeLang;
       recognition.maxAlternatives = 2;
@@ -213,11 +270,13 @@ export function useSpeechInput({
             stopListening();
             return;
           }
-          setErrorMessage('कोई आवाज़ सुनाई नहीं दी। कृपया फिर से बोलें।');
+          setErrorMessage('कोई आवाज़ सुनाई नहीं दी। कृपया माइक दबाकर पुनः बोलें।');
         } else if (error === 'not-allowed') {
-          setErrorMessage('माइक की अनुमति नहीं मिली। कृपया ब्राउज़र/डिवाइस में माइक परमिशन ऑन करें।');
+          setErrorMessage('माइक की अनुमति अस्वीकृत है। कृपया ब्राउज़र/डिवाइस सेटिंग्स में माइक्रोफ़ोन की अनुमति (Allow) दें।');
+        } else if (error === 'service-not-allowed') {
+          setErrorMessage('गूगल वॉयस सर्विस ब्लॉक है। डिवाइस में Google Speech Services चालू करें।');
         } else if (error === 'network') {
-          setErrorMessage('इंटरनेट कनेक्शन में समस्या है। आप लिखकर भी एंट्री कर सकते हैं।');
+          setErrorMessage('इंटरनेट कनेक्शन में समस्या है। आप कीबोर्ड से भी एंट्री कर सकते हैं।');
         } else if (error !== 'aborted') {
           setErrorMessage('वॉयस इनपुट त्रुटि: ' + error);
         }
@@ -228,8 +287,8 @@ export function useSpeechInput({
       };
 
       recognition.onend = () => {
-        if (!manualStopRef.current && isListeningRef.current) {
-          // Auto-restart if ended prematurely
+        if (!manualStopRef.current && isListeningRef.current && isMobileBrowser) {
+          // Auto-restart on mobile browser to maintain continuous listening without Chromium bug
           try {
             recognition.start();
             return;

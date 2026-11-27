@@ -103,8 +103,20 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
   useEffect(() => {
     if (errorMessage) {
       setShowTextInput(true);
+      setMicStatusText('माइक रुका हुआ है (माइक बटन दबाएं या अनुमति दें)');
     }
   }, [errorMessage]);
+
+  // Sync mic status text with listening state
+  useEffect(() => {
+    if (!errorMessage) {
+      if (isListening) {
+        setMicStatusText('सुन रहे हैं... बोलना जारी रखें');
+      } else {
+        setMicStatusText('माइक दबाकर बोलें (Tap to Speak)');
+      }
+    }
+  }, [isListening, errorMessage]);
 
   const handleStartListening = () => {
     resetTranscript();
