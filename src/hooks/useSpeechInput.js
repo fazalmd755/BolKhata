@@ -197,14 +197,9 @@ export function useSpeechInput({
     }
 
     // 2. Browser Web Speech API Implementation
-    if (typeof window !== 'undefined' && !window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-      setErrorMessage('मोबाइल ब्राउज़र में माइक सिर्फ HTTPS या Android APK में काम करता है। कृपया APK में चलाएं या नीचे कीबोर्ड से टाइप करें।');
-      return;
-    }
-
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognitionAPI) {
-      setErrorMessage('इस ब्राउज़र में वॉयस इनपुट समर्थित नहीं है। कृपया Chrome ब्राउज़र का उपयोग करें या Android APK में चलाएं।');
+      setErrorMessage('इस ब्राउज़र में वॉयस इनपुट समर्थित नहीं है। नीचे कीबोर्ड से टाइप करें।');
       return;
     }
 
@@ -216,10 +211,7 @@ export function useSpeechInput({
       const recognition = new SpeechRecognitionAPI();
       webRecognitionRef.current = recognition;
 
-      const isMobileBrowser = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-      // On mobile browsers, continuous=true frequently triggers instant abort/hang in Chromium
-      recognition.continuous = !isMobileBrowser;
+      recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = activeLang;
       recognition.maxAlternatives = 2;
@@ -287,8 +279,8 @@ export function useSpeechInput({
       };
 
       recognition.onend = () => {
-        if (!manualStopRef.current && isListeningRef.current && isMobileBrowser) {
-          // Auto-restart on mobile browser to maintain continuous listening without Chromium bug
+        if (!manualStopRef.current && isListeningRef.current) {
+          // Auto-restart to maintain active listening session
           try {
             recognition.start();
             return;

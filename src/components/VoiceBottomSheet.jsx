@@ -111,12 +111,14 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
   useEffect(() => {
     if (!errorMessage) {
       if (isListening) {
-        setMicStatusText('सुन रहे हैं... बोलना जारी रखें');
+        if (!transcript && !interimText) {
+          setMicStatusText('सुन रहे हैं... बोलना जारी रखें');
+        }
       } else {
         setMicStatusText('माइक दबाकर बोलें (Tap to Speak)');
       }
     }
-  }, [isListening, errorMessage]);
+  }, [isListening, errorMessage, transcript, interimText]);
 
   const handleStartListening = () => {
     resetTranscript();
