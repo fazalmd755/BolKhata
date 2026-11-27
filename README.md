@@ -118,33 +118,6 @@ Click the **Demo Commands** chips inside the app or speak these into the microph
 
 ---
 
-## 📹 2-Minute YouTube Demo Video Script
-
-**Scene 1: Introduction (0:00 - 0:25)**
-* *Visual:* Camera focuses on BolKhata running on mobile browser.
-* *Voiceover:* "Namaste! This is BolKhata — a voice-first digital ledger built for India's 13 million Kirana shopkeepers who find mobile typing frustrating while attending to store customers."
-
-**Scene 2: Core Voice-to-Ledger Flow (0:25 - 0:55)**
-* *Action:* Tap the green floating mic button. Speak: *"Ramesh bhai ko 2500 rupaye ka udhaar diya."*
-* *Visual:* Live Hindi transcription streams on screen. The Confirmation Modal opens instantly showing ₹2,500 Credit for Ramesh Kirana.
-* *Action:* Tap "सुरक्षित दर्ज करें".
-* *Visual:* Confetti burst, pleasant cash chime sound plays, and Ramesh's ledger updates with live running balance.
-
-**Scene 3: Complex Slang & Items Parsing (0:55 - 1:20)**
-* *Action:* Tap mic and speak: *"Suresh ko 450 rupaye ka tel aur cheeni udhaar di, agle somwar denge."*
-* *Visual:* Parser extracts customer name, items ('tel', 'cheeni'), and computes next Monday's date automatically.
-
-**Scene 4: Zero-Mistake Balance Query (1:20 - 1:40)**
-* *Action:* Speak: *"Mohan Lal ka kitna baaki hai?"*
-* *Visual:* Shows spoken balance modal and BolKhata speaks aloud in sweet Hindi voice: *"Mohan Lal ji ka kul baaki hisaab 4,850 rupaye hai."* Notice: No transaction was falsely created!
-
-**Scene 5: WhatsApp Reminders & Conclusion (1:40 - 2:00)**
-* *Action:* Click on Mohan Lal ➡️ Tap "WhatsApp तकादा" ➡️ Shows UPI link with payment request. Tap "WhatsApp पर भेजें".
-* *Visual:* WhatsApp opens with pre-filled message and direct UPI link.
-* *Voiceover:* "100% Client-side. Zero API keys. Instant latency. Empowering Bharat's local businesses with BolKhata!"
-
----
-
 ## 🛠️ Project Structure
 
 ```
