@@ -1,6 +1,6 @@
 import { parseRelativeDate, formatDateISO } from './dateUtils.js';
 import { parseHindiSpokenNumber, convertDevanagariNumerals } from './hindiNumberParser.js';
-import { validateAndEnhanceIndianName, cleanCustomerCandidateName } from './indianNameValidator.js';
+import { validateAndEnhanceIndianName, cleanCustomerCandidateName, matchKnownCustomerFromText } from './indianNameValidator.js';
 
 // Devanagari digit map
 const DEVANAGARI_DIGITS = {
@@ -276,27 +276,18 @@ export function extractCustomerName(text, knownCustomers = []) {
   if (!text) return { customerName: 'Customer', matchedKnown: false, customerId: null, isNewCustomer: false, isIndianNameMatch: false, nameValidationReason: '' };
   const lower = text.toLowerCase().trim();
 
-  // Step 1: Match against known customers (Exact -> First Name -> Phonetic Variations)
-  for (const cust of knownCustomers) {
-    const custLower = cust.name.toLowerCase();
-    
-    // 1. Exact or full name in text
-    if (lower.includes(custLower)) {
-      return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id, isNewCustomer: false, isIndianNameMatch: true, nameValidationReason: 'मौजूदा पंजीकृत ग्राहक' };
-    }
-
-    // 2. Check first name match (e.g. "Ramesh" in "Ramesh Kirana" or "Mohan" in "Mohan Lal")
-    const firstName = custLower.split(/\s+/)[0];
-    if (firstName.length >= 3 && new RegExp('\\b' + firstName + '\\b', 'i').test(lower)) {
-      return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id, isNewCustomer: false, isIndianNameMatch: true, nameValidationReason: 'मौजूदा पंजीकृत ग्राहक' };
-    }
-
-    // 3. Phonetic variations (e.g. "aneeta" -> "anita", "puja" -> "pooja", "rames" -> "ramesh")
-    const normFirst = firstName.replace(/sh/g, 's').replace(/ee/g, 'i').replace(/oo/g, 'u');
-    const normText = lower.replace(/sh/g, 's').replace(/ee/g, 'i').replace(/oo/g, 'u');
-    if (new RegExp('\\b' + normFirst + '\\b', 'i').test(normText)) {
-      return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id, isNewCustomer: false, isIndianNameMatch: true, nameValidationReason: 'मौजूदा पंजीकृत ग्राहक' };
-    }
+  // Step 1: Match against known customers (Bilingual: Devanagari Hindi + English)
+  const knownMatch = matchKnownCustomerFromText(text, knownCustomers);
+  if (knownMatch) {
+    return {
+      customerName: knownMatch.name,
+      matchedKnown: true,
+      customer: knownMatch,
+      customerId: knownMatch.id,
+      isNewCustomer: false,
+      isIndianNameMatch: true,
+      nameValidationReason: 'मौजूदा पंजीकृत ग्राहक'
+    };
   }
 
   // Step 2: New Customer Command Pattern

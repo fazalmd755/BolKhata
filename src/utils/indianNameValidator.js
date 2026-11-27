@@ -96,6 +96,23 @@ export const DEVANAGARI_NAME_DICTIONARY = {
   'मलिक': 'Malik',
   'मिर्ज़ा': 'Mirza',
   'मिर्जा': 'Mirza',
+  'दानिश': 'Danish',
+  'जावेद': 'Javed',
+  'मुन्ना': 'Munna',
+  'गुड्डू': 'Guddu',
+  'कल्लू': 'Kallu',
+  'सद्दाम': 'Saddam',
+  'फैजान': 'Faizan',
+  'रिजवान': 'Rizwan',
+  'साजिद': 'Sajid',
+  'आमिर': 'Aamir',
+  'शोएब': 'Shoaib',
+  'जाकिर': 'Zakir',
+  'कलीम': 'Kaleem',
+  'शमीम': 'Shamim',
+  'नईम': 'Naeem',
+  'शकील': 'Shakeel',
+  'इकबाल': 'Iqbal',
 
   // Hindu / Traditional Origin
   'सुरेश': 'Suresh',
@@ -211,6 +228,42 @@ export function cleanCustomerCandidateName(rawName) {
 }
 
 /**
+ * Matches known registered customers across both English and Devanagari Hindi
+ * e.g. "रमेश" -> matches "Ramesh Kirana"
+ * e.g. "सुरेश" -> matches "Suresh Sharma"
+ * e.g. "Ramesh" -> matches "Ramesh Kirana"
+ */
+export function matchKnownCustomerFromText(text, knownCustomers = []) {
+  if (!text || !knownCustomers || knownCustomers.length === 0) return null;
+  const lower = text.toLowerCase().trim();
+
+  // 1. Direct English full name or first name check
+  for (const c of knownCustomers) {
+    const cLower = c.name.toLowerCase();
+    const cFirst = cLower.split(/\s+/)[0];
+    if (lower.includes(cLower)) return c;
+    if (cFirst.length >= 3 && new RegExp('\\b' + cFirst + '\\b', 'i').test(lower)) {
+      return c;
+    }
+  }
+
+  // 2. Devanagari dictionary match to English customer
+  for (const [devWord, engName] of Object.entries(DEVANAGARI_NAME_DICTIONARY)) {
+    if (text.includes(devWord)) {
+      const engLower = engName.toLowerCase();
+      const engFirst = engLower.split(/\s+/)[0];
+      const match = knownCustomers.find(c => {
+        const cLower = c.name.toLowerCase();
+        return cLower.includes(engLower) || cLower.includes(engFirst) || engLower.includes(cLower.split(/\s+/)[0]);
+      });
+      if (match) return match;
+    }
+  }
+
+  return null;
+}
+
+/**
  * AI & Heuristic Indian Name Validator & Enhancer
  * Takes a candidate name and checks:
  * 1. Cleaned candidate without junk words
@@ -246,12 +299,8 @@ export function validateAndEnhanceIndianName(candidate, knownCustomers = []) {
 
   const lower = cleaned.toLowerCase();
 
-  // 2. Check if it matches an existing known customer (Exact / Case-insensitive / Substring)
-  const matchedKnown = knownCustomers.find(c => {
-    const cLower = c.name.toLowerCase();
-    return cLower === lower || cLower.includes(lower) || lower.includes(cLower);
-  });
-
+  // 2. Check if it matches an existing registered customer (both English & Devanagari)
+  const matchedKnown = matchKnownCustomerFromText(cleaned, knownCustomers);
   if (matchedKnown) {
     return {
       isValid: true,
@@ -270,6 +319,18 @@ export function validateAndEnhanceIndianName(candidate, knownCustomers = []) {
     // Check direct match
     if (DEVANAGARI_NAME_DICTIONARY[cleaned]) {
       const engName = DEVANAGARI_NAME_DICTIONARY[cleaned];
+      const matchAfterTrans = matchKnownCustomerFromText(engName, knownCustomers);
+      if (matchAfterTrans) {
+        return {
+          isValid: true,
+          cleanName: matchAfterTrans.name,
+          confidence: 0.98,
+          isKnownCustomer: true,
+          matchedCustomer: matchAfterTrans,
+          isIndianNameMatch: true,
+          reasoning: 'मौजूदा पंजीकृत ग्राहक'
+        };
+      }
       return {
         isValid: true,
         cleanName: engName,
