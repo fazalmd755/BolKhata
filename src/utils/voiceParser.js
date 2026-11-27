@@ -129,7 +129,7 @@ export function classifyIntent(text) {
     /(?:नहीं\s*दिए|नहीं\s*दिया|पैसे\s*नहीं|पेमेंट\s*नहीं|नहीं\s*आए|नहीं\s*आया|नहीं\s*मिला|वापस\s*किया|कैंसिल|रद्द)/.test(lower);
 
   if (isNegative) {
-    if (/\b(cancel|कैंसिल|रद्द)\b/i.test(lower)) {
+    if (/(?:\bcancel\b|कैंसिल|रद्द)/i.test(lower)) {
       return {
         intent: 'cancel',
         isNegative: true,

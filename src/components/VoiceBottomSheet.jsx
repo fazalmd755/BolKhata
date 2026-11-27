@@ -317,15 +317,17 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
 
             <button
               onClick={() => setShowTextInput(prev => !prev)}
-              className="p-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
+              className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
               title="Toggle Text Typing"
+              aria-label="Toggle Text Typing"
             >
               <Keyboard className="w-4 h-4" />
             </button>
 
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
+              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-700 transition"
+              aria-label="Close modal"
             >
               <X className="w-5 h-5" />
             </button>
@@ -345,6 +347,7 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
           {/* Central Mic Button */}
           <button
             onClick={isListening ? handleStopListening : handleStartListening}
+            aria-label={isListening ? "Stop voice listening" : "Start voice listening"}
             className={`relative z-10 w-20 h-20 rounded-full flex items-center justify-center shadow-xl transition-all transform active:scale-95 ${
               isListening
                 ? 'bg-red-500 text-white ring-8 ring-red-100 animate-pulse shadow-red-200'

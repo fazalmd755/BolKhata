@@ -40,3 +40,21 @@
     background: white !important;
   }
 }
+
+/* Accessibility: Respect Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Accessible Minimum Touch Targets for Kirana Shopkeepers (44x44px minimum) */
+.touch-target-min {
+  min-width: 44px;
+  min-height: 44px;
+}

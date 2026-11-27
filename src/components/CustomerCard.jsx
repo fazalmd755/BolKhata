@@ -108,8 +108,9 @@ export default function CustomerCard({ customer }) {
             <a
               href={`tel:+91${customer.phone}`}
               onClick={(e) => e.stopPropagation()}
-              className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition"
+              className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 transition"
               title="Call Customer"
+              aria-label="Call customer"
             >
               <Phone className="w-3.5 h-3.5" />
             </a>
@@ -119,8 +120,9 @@ export default function CustomerCard({ customer }) {
           {balance > 0 && (
             <button
               onClick={handleSendReminder}
-              className="p-1.5 rounded-lg text-emerald-600 hover:bg-emerald-50 border border-emerald-200 transition flex items-center gap-1 text-[11px] font-bold"
+              className="p-2 min-h-[36px] rounded-lg text-emerald-600 hover:bg-emerald-50 border border-emerald-200 transition flex items-center gap-1 text-[11px] font-bold"
               title="WhatsApp Payment Reminder"
+              aria-label="WhatsApp Payment Reminder"
             >
               <MessageCircle className="w-3.5 h-3.5 fill-emerald-600/10" />
               <span className="hidden sm:inline">तकादा</span>
@@ -130,8 +132,9 @@ export default function CustomerCard({ customer }) {
           {/* Quick Add Button */}
           <button
             onClick={handleQuickAdd}
-            className="p-1.5 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+            className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
             title="Add Transaction"
+            aria-label="Add Transaction"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>

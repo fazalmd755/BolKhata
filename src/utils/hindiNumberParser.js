@@ -132,21 +132,26 @@ export function parseHindiSpokenNumber(text) {
     if (kVal > 0) return kVal;
   }
 
-  // Check 1: Direct digits (₹2500, 2500 rs, 2,500, 450.50)
-  const directDigitMatch = clean.match(/(?:₹|rs\.?|inr|रू|रुपये|रुपए|रुपया)?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:₹|rs\.?|inr|\/-|रू|रुपये|रुपए|रुपया|(?:\s|$))/i);
-  if (directDigitMatch) {
-    const val = parseFloat(directDigitMatch[1].replace(/,/g, ''));
-    if (!isNaN(val) && val > 0) {
-      return val;
-    }
-  }
+  // Check if text has unit multipliers (e.g. "5 lakh", "2 crore", "2 हजार", "साढ़े चार सौ")
+  const hasUnitMultiplier = /(?:\b(?:lakh|crore|cr|lac|hazar|hazaar|sau|so)\b|लाख|करोड़|करोड|हज़ार|हजार|सौ)/i.test(clean);
 
-  // Check 2: Standalone 2 to 7 digit integer
-  const standaloneMatch = clean.match(/(?:^|\s)(\d{2,7})(?:\s|$)/);
-  if (standaloneMatch) {
-    const val = parseInt(standaloneMatch[1], 10);
-    if (!isNaN(val) && val > 0) {
-      return val;
+  // Check 1: Direct digits (₹2500, 2500 rs, 2,500, 450.50) when not accompanied by unit multiplier
+  if (!hasUnitMultiplier) {
+    const directDigitMatch = clean.match(/(?:₹|rs\.?|inr|रू|रुपये|रुपए|रुपया)?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:₹|rs\.?|inr|\/-|रू|रुपये|रुपए|रुपया|(?:\s|$))/i);
+    if (directDigitMatch) {
+      const val = parseFloat(directDigitMatch[1].replace(/,/g, ''));
+      if (!isNaN(val) && val > 0) {
+        return val;
+      }
+    }
+
+    // Check 2: Standalone 2 to 7 digit integer
+    const standaloneMatch = clean.match(/(?:^|\s)(\d{2,7})(?:\s|$)/);
+    if (standaloneMatch) {
+      const val = parseInt(standaloneMatch[1], 10);
+      if (!isNaN(val) && val > 0) {
+        return val;
+      }
     }
   }
 
