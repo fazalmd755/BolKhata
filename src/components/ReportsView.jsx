@@ -68,7 +68,9 @@ export default function ReportsView() {
           </button>
           <button
             onClick={handlePrint}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold"
+            className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold"
+            title="Print Report"
+            aria-label="Print Report"
           >
             <Printer className="w-3.5 h-3.5" />
           </button>

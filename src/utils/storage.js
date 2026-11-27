@@ -1,10 +1,13 @@
 // BolKhata Storage & Migration Engine (Single Key Atomic Persistence)
 import { parseRupees } from './money.js';
 import { generateId } from './idUtils.js';
+import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
 
 export const PRIMARY_STORAGE_KEY = 'bolkhata_v2_store';
 export const LEGACY_STORAGE_PREFIX = 'bolkhata_v1_store';
 export const CURRENT_SCHEMA_VERSION = 2;
+export const PREFERENCES_MIGRATION_FLAG = 'bolkhata_migrated_to_preferences';
 
 /**
  * Requests persistent storage from browser if supported
@@ -173,8 +176,9 @@ export function saveAtomicStore(data) {
   };
 
   const executeSave = () => {
+    const serialized = JSON.stringify(payload);
     try {
-      localStorage.setItem(PRIMARY_STORAGE_KEY, JSON.stringify(payload));
+      localStorage.setItem(PRIMARY_STORAGE_KEY, serialized);
     } catch (err) {
       console.error('[BolKhata Storage] Storage write error:', err);
       if (err.name === 'QuotaExceededError' || err.code === 22) {
@@ -183,10 +187,43 @@ export function saveAtomicStore(data) {
         }
       }
     }
+
+    // Item 8: Save to Capacitor Preferences on native Android so OS/WebView clearing does not wipe data
+    if (Capacitor.isNativePlatform()) {
+      Preferences.set({ key: PRIMARY_STORAGE_KEY, value: serialized }).catch(err => {
+        console.warn('[BolKhata Storage] Native Preferences write error:', err);
+      });
+    }
   };
 
   if (saveTimeout) clearTimeout(saveTimeout);
   saveTimeout = setTimeout(executeSave, 150);
+}
+
+/**
+ * One-time idempotent migration from web localStorage to Capacitor Preferences on native platforms (Item 8)
+ */
+export async function migrateLocalStorageToPreferences() {
+  if (!Capacitor.isNativePlatform()) return null;
+
+  try {
+    const { value: alreadyMigrated } = await Preferences.get({ key: PREFERENCES_MIGRATION_FLAG });
+    if (alreadyMigrated === 'true') {
+      const { value: nativeVal } = await Preferences.get({ key: PRIMARY_STORAGE_KEY });
+      if (nativeVal) return JSON.parse(nativeVal);
+    }
+
+    const localRaw = typeof localStorage !== 'undefined' ? localStorage.getItem(PRIMARY_STORAGE_KEY) : null;
+    if (localRaw) {
+      await Preferences.set({ key: PRIMARY_STORAGE_KEY, value: localRaw });
+      await Preferences.set({ key: PREFERENCES_MIGRATION_FLAG, value: 'true' });
+      console.log('[BolKhata Storage] Successfully migrated data from localStorage to Capacitor Preferences');
+      return JSON.parse(localRaw);
+    }
+  } catch (err) {
+    console.warn('[BolKhata Storage] Native preferences migration error:', err);
+  }
+  return null;
 }
 
 /**

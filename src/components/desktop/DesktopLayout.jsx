@@ -113,7 +113,8 @@ export default function DesktopLayout({
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery('')}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                        aria-label="Clear search"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs min-w-[24px] min-h-[24px] flex items-center justify-center"
                       >
                         ✕
                       </button>

@@ -76,7 +76,8 @@ export default function BalanceQueryModal() {
           </div>
           <button
             onClick={() => setActiveModal(null)}
-            className="p-1.5 rounded-full hover:bg-white/20 transition text-white"
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/20 transition text-white"
+            aria-label="Close modal"
           >
             <X className="w-5 h-5" />
           </button>
@@ -97,8 +98,9 @@ export default function BalanceQueryModal() {
               </div>
               <button
                 onClick={handleSpeakAgain}
-                className="p-2 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 transition shrink-0"
+                className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 transition shrink-0"
                 title="Speak voice response again"
+                aria-label="Speak voice response again"
               >
                 <Volume2 className="w-4 h-4" />
               </button>

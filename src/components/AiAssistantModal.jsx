@@ -325,7 +325,8 @@ export default function AiAssistantModal({ isOpen, onClose }) {
             {/* Close */}
             <button
               onClick={onClose}
-              className="p-2 rounded-xl hover:bg-emerald-600 text-emerald-100 hover:text-white transition"
+              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-emerald-600 text-emerald-100 hover:text-white transition"
+              aria-label="Close modal"
             >
               <X className="w-5 h-5" />
             </button>

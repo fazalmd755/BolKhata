@@ -129,6 +129,7 @@ export default function PinLockModal() {
           <button
             type="button"
             onClick={handleBackspace}
+            aria-label="Backspace"
             className="h-14 rounded-2xl bg-slate-900/50 text-sm font-bold text-slate-400 hover:text-white transition flex items-center justify-center"
           >
             ⌫

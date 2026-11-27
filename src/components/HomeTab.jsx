@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
 import { formatDisplayDate, formatRelativeTime, isOverdue } from '../utils/dateUtils';
+import { getBackupStatus } from '../utils/backupService';
+import { useTranslation } from '../i18n';
 
 export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpenAiAssistant }) {
   const { 
@@ -31,6 +33,9 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
     shopSettings 
   } = useKhata();
 
+  const { t } = useTranslation();
+  const backupStatus = getBackupStatus();
+
   const recentTxns = transactions.filter(t => !t.deletedAt).slice(0, 5);
 
   const handleOpenCustomer = (cid) => {
@@ -45,6 +50,23 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
 
   return (
     <div className="space-y-4 pb-6">
+      {/* Item 10: 7-day Backup Overdue Reminder */}
+      {backupStatus.isOverdue && transactions.length > 0 && (
+        <div 
+          onClick={() => setActiveModal('settings')}
+          className="bg-amber-50 border border-amber-300 rounded-2xl p-3 flex items-center justify-between text-xs text-amber-900 cursor-pointer shadow-2xs hover:bg-amber-100/80 transition"
+        >
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+            <div>
+              <span className="font-bold">बैकअप रिमाइंडर: </span>
+              <span>अंतिम बैकअप 7 दिन से पुराना है। सेटिंग्स में जाकर बैकअप सुरक्षित करें।</span>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-amber-700 shrink-0" />
+        </div>
+      )}
+
       {/* Top Emerald Shop Hero Card */}
       <div className="bg-gradient-to-tr from-emerald-800 via-emerald-700 to-teal-700 rounded-3xl p-4 text-white shadow-md relative overflow-hidden">
         {/* Background decorative watermark */}
@@ -53,7 +75,7 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
         </div>
 
         <div className="flex items-center justify-between text-xs text-emerald-100 font-medium mb-1">
-          <span>कुल बकाया उधार (Net Credit Due)</span>
+          <span>{t('total_udhaar')}</span>
           <span className="text-[10px] bg-emerald-900/60 border border-emerald-500/30 px-2 py-0.5 rounded-full">
             {activeCustomersCount} ग्राहक
           </span>

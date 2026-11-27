@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { KhataProvider, useKhata } from './context/KhataContext';
+import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
 import MobileHeader from './components/MobileHeader';
 import BottomNavBar from './components/BottomNavBar';
 import HomeTab from './components/HomeTab';
@@ -34,12 +36,38 @@ function AppLayout() {
     customers, 
     activeCustomersCount, 
     overdueCustomers, 
+    activeModal,
     setActiveModal,
     setModalPayload,
     undoAction,
     undoLastAction,
     setUndoAction
   } = useKhata();
+
+  // Item 14: Hardware Back button handling on Android
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const listenerPromise = CapApp.addListener('backButton', () => {
+      if (activeModal) {
+        setActiveModal(null);
+      } else if (isVoiceSheetOpen) {
+        setIsVoiceSheetOpen(false);
+      } else if (isAiAssistantOpen) {
+        setIsAiAssistantOpen(false);
+      } else if (isPhoneModalOpen) {
+        setIsPhoneModalOpen(false);
+      } else if (activeTab !== 'home') {
+        setActiveTab('home');
+      } else {
+        CapApp.exitApp();
+      }
+    });
+
+    return () => {
+      listenerPromise.then(handler => handler.remove());
+    };
+  }, [activeModal, isVoiceSheetOpen, isAiAssistantOpen, isPhoneModalOpen, activeTab, setActiveModal]);
 
   const filters = [
     { id: 'all', label: 'सभी (All)', count: customers.length },

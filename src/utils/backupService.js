@@ -86,7 +86,10 @@ export function getBackupStatus() {
     return {
       hasBackup: false,
       lastBackupDate: null,
-      lastBackupLabel: 'कोई बैकअप नहीं मिला'
+      lastBackupLabel: 'कोई बैकअप नहीं मिला (No backup)',
+      daysSinceLastBackup: 999,
+      isOverdue: true,
+      lastBackupDaysAgo: 'कभी नहीं (Never)'
     };
   }
 
@@ -95,10 +98,15 @@ export function getBackupStatus() {
   const timeStr = isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   const isToday = latest.dateKey === toLocalDateKey(new Date());
 
+  const daysDiff = Math.max(0, Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24)));
+
   return {
     hasBackup: true,
     lastBackupDate: latest.savedAt,
     lastBackupLabel: isToday ? `आज, ${timeStr}` : `${latest.dateKey}, ${timeStr}`,
+    daysSinceLastBackup: daysDiff,
+    isOverdue: daysDiff >= 7,
+    lastBackupDaysAgo: daysDiff === 0 ? 'आज (Today)' : `${daysDiff} दिन पहले (${daysDiff} days ago)`,
     snapshotsCount: snapshots.length
   };
 }

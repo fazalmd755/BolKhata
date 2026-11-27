@@ -261,7 +261,7 @@ export default function ManualEntryModal() {
                 </option>
                 {customers.map(c => (
                   <option key={c.id} value={c.id}>
-                    {c.name} (बकाया: ₹{c.balance.toLocaleString('en-IN')})
+                    {c.name} {c.phone ? `(📞 ${c.phone})` : (c.address ? `(${c.address})` : '')} (बकाया: ₹{c.balance.toLocaleString('en-IN')})
                   </option>
                 ))}
               </select>

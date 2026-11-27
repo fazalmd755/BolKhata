@@ -124,7 +124,7 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
   const processCommand = (text) => {
     if (!text || !text.trim()) return;
     setIsProcessing(true);
-    stopAllListening();
+    stopListening();
     onClose(); // Close sheet
 
     try {
@@ -526,7 +526,8 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
             <button
               type="submit"
               disabled={!manualText.trim()}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shrink-0 disabled:bg-slate-300 shadow-xs"
+              aria-label="Submit typed entry"
+              className="px-4 py-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shrink-0 disabled:bg-slate-300 shadow-xs"
             >
               <CornerDownLeft className="w-4 h-4" />
             </button>

@@ -197,8 +197,9 @@ export default function CustomerLedgerModal() {
             )}
             <button
               onClick={handlePrint}
-              className="p-2 border border-slate-200 hover:bg-white text-slate-600 rounded-xl transition"
+              className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center border border-slate-200 hover:bg-white text-slate-600 rounded-xl transition"
               title="Print Ledger"
+              aria-label="Print Ledger"
             >
               <Printer className="w-4 h-4" />
             </button>

@@ -67,7 +67,8 @@ export default function PhoneConnectModal({ isOpen, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-full hover:bg-white/20 transition text-white"
+            className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-white/20 transition text-white"
+            aria-label="Close modal"
           >
             <X className="w-5 h-5" />
           </button>

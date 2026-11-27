@@ -53,7 +53,8 @@ export default function DesktopHeader({ onOpenVoice, onOpenPhoneModal, onOpenAiA
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs min-w-[24px] min-h-[24px] flex items-center justify-center"
+              aria-label="Clear search"
             >
               ✕
             </button>
@@ -76,6 +77,7 @@ export default function DesktopHeader({ onOpenVoice, onOpenPhoneModal, onOpenAiA
           onClick={onOpenAiAssistant}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-bold shadow-sm shadow-emerald-700/20 active:scale-95 transition"
           title="बोलखाता AI मुंशी से बात करें (Chat with AI Munshi)"
+          aria-label="बोलखाता AI मुंशी से बात करें (Chat with AI Munshi)"
         >
           <Bot className="w-3.5 h-3.5 animate-pulse text-white" />
           <span className="hidden sm:inline">AI मुंशी</span>
@@ -84,7 +86,8 @@ export default function DesktopHeader({ onOpenVoice, onOpenPhoneModal, onOpenAiA
         {/* + Naya Khata / Add Customer Button */}
         <button
           onClick={handleAddNewCustomer}
-          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-sm transition"
+          aria-label="Add new customer"
+          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-sm transition min-h-[44px]"
         >
           <PlusCircle className="w-4 h-4" />
           <span className="hidden md:inline">+ नया ग्राहक</span>
@@ -93,8 +96,9 @@ export default function DesktopHeader({ onOpenVoice, onOpenPhoneModal, onOpenAiA
         {/* QR Code Connect on Phone */}
         <button
           onClick={onOpenPhoneModal}
-          className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition"
+          className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition"
           title="QR कोड स्कैन करके फोन पर चलाएं"
+          aria-label="QR कोड स्कैन करके फोन पर चलाएं (Open on Phone)"
         >
           <QrCode className="w-4 h-4 text-emerald-700" />
         </button>
@@ -102,8 +106,9 @@ export default function DesktopHeader({ onOpenVoice, onOpenPhoneModal, onOpenAiA
         {/* Sound Toggle */}
         <button
           onClick={toggleSound}
-          className="p-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition"
+          className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition"
           title={shopSettings.soundEnabled ? 'आवाज़ बंद करें (Mute Audio)' : 'आवाज़ चालू करें (Enable Audio)'}
+          aria-label={shopSettings.soundEnabled ? 'Mute audio' : 'Enable audio'}
         >
           {shopSettings.soundEnabled ? (
             <Volume2 className="w-4 h-4 text-emerald-600" />

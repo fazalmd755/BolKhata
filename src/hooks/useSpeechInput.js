@@ -25,6 +25,7 @@ export function useSpeechInput({
   const silenceTimerRef = useRef(null);
   const maxSessionTimerRef = useRef(null);
   const accumulatedRef = useRef('');
+  const interimRef = useRef('');
   const manualStopRef = useRef(false);
   const isAvailableRef = useRef(true);
 
@@ -36,6 +37,7 @@ export function useSpeechInput({
 
   const resetTranscript = useCallback(() => {
     accumulatedRef.current = '';
+    interimRef.current = '';
     setTranscript('');
     setInterimText('');
     setErrorMessage('');
@@ -74,7 +76,7 @@ export function useSpeechInput({
     setIsListening(false);
 
     // Finalize transcript
-    const finalClean = accumulatedRef.current.trim();
+    const finalClean = (accumulatedRef.current + ' ' + interimRef.current).trim();
     if (finalClean && onResult) {
       onResult(finalClean);
     }
@@ -186,9 +188,11 @@ export function useSpeechInput({
 
         if (currentFinal.trim()) {
           accumulatedRef.current = (accumulatedRef.current + ' ' + currentFinal).trim();
+          interimRef.current = '';
           setTranscript(accumulatedRef.current);
           setInterimText('');
         } else if (currentInterim.trim()) {
+          interimRef.current = currentInterim.trim();
           setInterimText(currentInterim.trim());
         }
 
@@ -235,7 +239,7 @@ export function useSpeechInput({
         setIsListening(false);
         clearTimers();
 
-        const finalText = (accumulatedRef.current + ' ' + interimText).trim();
+        const finalText = (accumulatedRef.current + ' ' + interimRef.current).trim();
         if (finalText && onResult) {
           onResult(finalText);
         }

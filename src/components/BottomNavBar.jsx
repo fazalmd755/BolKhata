@@ -13,6 +13,7 @@ export default function BottomNavBar({ activeTab, setActiveTab, onOpenVoiceSheet
           onClick={onOpenVoiceSheet}
           className="w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-600 to-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-600/35 ring-4 ring-white active:scale-90 transition-all hover:scale-105"
           title="बोलकर खाता लिखें (Speak Voice Khata)"
+          aria-label="बोलकर खाता लिखें (Record Voice Khata)"
         >
           <Mic className="w-6 h-6 animate-pulse" />
         </button>

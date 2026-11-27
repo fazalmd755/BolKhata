@@ -80,9 +80,15 @@ export default function SettingsView() {
     reader.onload = (event) => {
       try {
         const parsed = JSON.parse(event.target.result);
-        const res = restoreBackupData(parsed);
+        const shouldMerge = window.confirm(
+          'रीस्टोर विकल्प चुनें (Choose Restore Mode):\n\n' +
+          '• [OK] दबाएं: वर्तमान लेजर में जोड़ें (Merge into current data)\n' +
+          '• [Cancel] दबाएं: वर्तमान लेजर को पूरी तरह बदलें (Replace everything)'
+        );
+        const restoreMode = shouldMerge ? 'merge' : 'replace';
+        const res = restoreBackupData(parsed, restoreMode);
         if (res.success) {
-          alert(`बैकअप सफलतापूर्वक रीस्टोर हुआ! (${res.customerCount} ग्राहक, ${res.transactionCount} लेन-देन)`);
+          alert(`बैकअप सफलतापूर्वक ${restoreMode === 'merge' ? 'मर्ज (Merge)' : 'रीस्टोर (Replace)'} हुआ! (${res.customerCount} ग्राहक, ${res.transactionCount} लेन-देन)`);
           setBackupStatus(getBackupStatus());
         } else {
           alert('रीस्टोर विफल: ' + res.error);
@@ -197,6 +203,18 @@ export default function SettingsView() {
               WhatsApp तकादा में सुरक्षित UPI पेमेंट लिंक जोड़ने के लिए।
             </p>
           )}
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-bold text-slate-500 mb-1">भाषा (Language Setting)</label>
+          <select
+            value={formData.language || 'hi'}
+            onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+            className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300 font-semibold focus:outline-none focus:border-emerald-600 bg-white"
+          >
+            <option value="hi">हिन्दी (Hindi) - डिफ़ॉल्ट</option>
+            <option value="en">English (अंग्रेजी)</option>
+          </select>
         </div>
 
         <div className="pt-2 flex items-center justify-between">
@@ -327,9 +345,13 @@ export default function SettingsView() {
             <Database className="w-4 h-4 text-emerald-600" />
             <h4 className="text-xs font-bold text-slate-800">खाता बैकअप एवं रीस्टोर (Backup & Export)</h4>
           </div>
-          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
+            backupStatus.isOverdue 
+              ? 'text-amber-700 bg-amber-50 border border-amber-300' 
+              : 'text-emerald-700 bg-emerald-50 border border-emerald-200'
+          }`}>
             <Clock className="w-3 h-3" />
-            <span>{backupStatus.lastBackupLabel}</span>
+            <span>अंतिम बैकअप: {backupStatus.lastBackupDaysAgo}</span>
           </span>
         </div>
         <p className="text-[11px] text-slate-500">

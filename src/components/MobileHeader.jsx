@@ -59,16 +59,18 @@ export default function MobileHeader({ onOpenPhoneModal, onOpenAiAssistant }) {
         {/* QR Code / Phone Connect button */}
         <button
           onClick={onOpenPhoneModal}
-          className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition border border-emerald-500/60"
+          className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition border border-emerald-500/60"
           title="अपने फोन पर खोलें (Open on Phone)"
+          aria-label="Open on Phone QR Code"
         >
           <QrCode className="w-3.5 h-3.5" />
         </button>
 
         <button
           onClick={toggleSound}
-          className="p-1.5 rounded-lg text-emerald-100 hover:text-white hover:bg-emerald-600 transition"
+          className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center rounded-lg text-emerald-100 hover:text-white hover:bg-emerald-600 transition"
           title={shopSettings.soundEnabled ? 'Mute sound' : 'Enable sound'}
+          aria-label={shopSettings.soundEnabled ? 'Mute sound' : 'Enable sound'}
         >
           {shopSettings.soundEnabled ? (
             <Volume2 className="w-3.5 h-3.5" />

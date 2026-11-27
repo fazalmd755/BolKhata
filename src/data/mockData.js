@@ -10,7 +10,8 @@ export const DEFAULT_SHOP_SETTINGS = {
   soundEnabled: true,
   voiceReadoutEnabled: true,
   currency: '₹',
-  onboardingCompleted: false
+  onboardingCompleted: false,
+  isDemoLoaded: false
 };
 
 export const DEMO_SHOP_SETTINGS = {
@@ -22,7 +23,8 @@ export const DEMO_SHOP_SETTINGS = {
   soundEnabled: true,
   voiceReadoutEnabled: true,
   currency: '₹',
-  onboardingCompleted: true
+  onboardingCompleted: true,
+  isDemoLoaded: true
 };
 
 export const INITIAL_CUSTOMERS = [

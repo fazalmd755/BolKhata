@@ -163,7 +163,6 @@ export const DEVANAGARI_NAME_DICTIONARY = {
   'सुरेश': 'Suresh',
   'सुरेश शर्मा': 'Suresh Sharma',
   'रमेश': 'Ramesh',
-  'रमेश किराना': 'Ramesh Kirana',
   'रमेश गुप्ता': 'Ramesh Gupta',
   'मोहन': 'Mohan',
   'मोहन लाल': 'Mohan Lal',
@@ -366,9 +365,9 @@ export function cleanCustomerCandidateName(rawName) {
 
 /**
  * Matches known registered customers across both English and Devanagari Hindi
- * e.g. "रमेश" -> matches "Ramesh Kirana"
+ * e.g. "रमेश" -> matches "Ramesh"
  * e.g. "सुरेश" -> matches "Suresh Sharma"
- * e.g. "Ramesh" -> matches "Ramesh Kirana"
+ * e.g. "Ramesh" -> matches "Ramesh"
  */
 export function matchKnownCustomerFromText(text, knownCustomers = []) {
   if (!text || !knownCustomers || knownCustomers.length === 0) return null;

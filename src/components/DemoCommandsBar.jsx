@@ -23,6 +23,11 @@ export default function DemoCommandsBar() {
     shopSettings 
   } = useKhata();
 
+  // Item 11: DemoCommandsBar must only show when demo data is loaded
+  if (!shopSettings?.isDemoLoaded) {
+    return null;
+  }
+
   const handleRunCommand = (command) => {
     const text = command.text;
     const parsed = parseVoiceInput(text, customers);
