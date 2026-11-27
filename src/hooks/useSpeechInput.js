@@ -28,6 +28,7 @@ export function useSpeechInput({
   const interimRef = useRef('');
   const manualStopRef = useRef(false);
   const isAvailableRef = useRef(true);
+  const hasDispatchedResultRef = useRef(false);
 
   // Check platform on mount
   useEffect(() => {
@@ -38,6 +39,7 @@ export function useSpeechInput({
   const resetTranscript = useCallback(() => {
     accumulatedRef.current = '';
     interimRef.current = '';
+    hasDispatchedResultRef.current = false;
     setTranscript('');
     setInterimText('');
     setErrorMessage('');
@@ -53,6 +55,15 @@ export function useSpeechInput({
       maxSessionTimerRef.current = null;
     }
   }, []);
+
+  const deliverResultOnce = useCallback(() => {
+    if (hasDispatchedResultRef.current) return;
+    const finalClean = (accumulatedRef.current + ' ' + interimRef.current).trim();
+    if (finalClean && onResult) {
+      hasDispatchedResultRef.current = true;
+      onResult(finalClean);
+    }
+  }, [onResult]);
 
   const stopListening = useCallback(async () => {
     manualStopRef.current = true;
@@ -75,15 +86,13 @@ export function useSpeechInput({
     isListeningRef.current = false;
     setIsListening(false);
 
-    // Finalize transcript
-    const finalClean = (accumulatedRef.current + ' ' + interimRef.current).trim();
-    if (finalClean && onResult) {
-      onResult(finalClean);
-    }
-  }, [clearTimers, onResult]);
+    // Finalize transcript exactly once
+    deliverResultOnce();
+  }, [clearTimers, deliverResultOnce]);
 
   const startListening = useCallback(async (customLang) => {
     manualStopRef.current = false;
+    hasDispatchedResultRef.current = false;
     setErrorMessage('');
     clearTimers();
 
@@ -290,10 +299,8 @@ export function useSpeechInput({
         setIsListening(false);
         clearTimers();
 
-        const finalText = (accumulatedRef.current + ' ' + interimRef.current).trim();
-        if (finalText && onResult) {
-          onResult(finalText);
-        }
+        // Deliver final result once
+        deliverResultOnce();
       };
 
       recognition.start();
@@ -309,7 +316,7 @@ export function useSpeechInput({
       isListeningRef.current = false;
       setIsListening(false);
     }
-  }, [language, silenceTimeoutMs, maxSessionTimeoutMs, clearTimers, stopListening, onResult, interimText]);
+  }, [language, silenceTimeoutMs, maxSessionTimeoutMs, clearTimers, stopListening, onResult, deliverResultOnce]);
 
   const toggleListening = useCallback(() => {
     if (isListening) {

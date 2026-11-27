@@ -302,10 +302,17 @@ export function transliterateHindiToEnglishPhonetic(text) {
 /**
  * Fallback Web Speech Synthesis with Female Voice priority
  */
+let activeSpeechTimer = null;
+
 export function speakViaWebSpeech(text, preferredLang = 'hi-IN') {
   if (typeof window === 'undefined' || !window.speechSynthesis) return false;
 
   try {
+    if (activeSpeechTimer) {
+      clearTimeout(activeSpeechTimer);
+      activeSpeechTimer = null;
+    }
+
     if (window.speechSynthesis.paused) {
       window.speechSynthesis.resume();
     }
@@ -324,8 +331,9 @@ export function speakViaWebSpeech(text, preferredLang = 'hi-IN') {
     if (!textToSpeak) return false;
 
     // Wait a brief tick after cancel to prevent Chrome auto-cancel bug
-    setTimeout(() => {
+    activeSpeechTimer = setTimeout(() => {
       try {
+        window.speechSynthesis.cancel(); // Clear any previously queued speech
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
 
         if (voice) {
@@ -360,6 +368,9 @@ export function speakViaWebSpeech(text, preferredLang = 'hi-IN') {
   }
 }
 
+let lastSpokenText = '';
+let lastSpokenTimestamp = 0;
+
 /**
  * Master Text-to-speech engine (C6: 100% offline-capable, local SpeechSynthesis):
  * 1. Native Android TTS bridge if available
@@ -368,6 +379,14 @@ export function speakViaWebSpeech(text, preferredLang = 'hi-IN') {
  */
 export async function speakText(text, preferredLang = 'hi-IN') {
   if (!text || typeof window === 'undefined') return;
+
+  const now = Date.now();
+  // Prevent repeating identical sentence within 3 seconds
+  if (lastSpokenText === text && (now - lastSpokenTimestamp) < 3000) {
+    return;
+  }
+  lastSpokenText = text;
+  lastSpokenTimestamp = now;
 
   // 1. Android Native App Support
   if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {

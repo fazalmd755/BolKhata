@@ -43,6 +43,7 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
   const [micStatusText, setMicStatusText] = useState('माइक दबाकर बोलें (Tap to Speak)');
   const [isProcessing, setIsProcessing] = useState(false);
   const [liveParsedPreview, setLiveParsedPreview] = useState(null);
+  const isProcessingRef = useRef(false);
 
   const {
     isListening,
@@ -67,6 +68,7 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
   // Auto-start listening on open
   useEffect(() => {
     if (isOpen) {
+      isProcessingRef.current = false;
       resetTranscript();
       setLiveParsedPreview(null);
       setMicStatusText('सुन रहे हैं... बोलना जारी रखें');
@@ -80,6 +82,7 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
         if (shopSettings.soundEnabled) playMicStopSound();
       };
     } else {
+      isProcessingRef.current = false;
       stopListening();
       resetTranscript();
       setLiveParsedPreview(null);
@@ -121,6 +124,7 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
   }, [isListening, errorMessage, transcript, interimText]);
 
   const handleStartListening = () => {
+    isProcessingRef.current = false;
     resetTranscript();
     setLiveParsedPreview(null);
     setMicStatusText('सुन रहे हैं... बोलना जारी रखें');
@@ -131,14 +135,11 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
   const handleStopListening = () => {
     stopListening();
     if (shopSettings.soundEnabled) playMicStopSound();
-    const liveText = (transcript + ' ' + interimText).trim();
-    if (liveText && liveText.length > 2) {
-      processCommand(liveText);
-    }
   };
 
   const processCommand = (text) => {
-    if (!text || !text.trim()) return;
+    if (!text || !text.trim() || isProcessingRef.current) return;
+    isProcessingRef.current = true;
     setIsProcessing(true);
     stopListening();
     onClose(); // Close sheet
