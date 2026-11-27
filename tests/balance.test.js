@@ -100,4 +100,9 @@ describe('Single Source of Truth: Customer Balance Derivations', () => {
     // Customer gave 200 advance: -200
     expect(balances['c1']).toBe(-200);
   });
+
+  it('returns empty balance map when store is fresh or cleared', () => {
+    const balances = deriveCustomerBalances([], []);
+    expect(Object.keys(balances).length).toBe(0);
+  });
 });

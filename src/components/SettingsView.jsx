@@ -22,7 +22,8 @@ import {
   AlertTriangle,
   Clock,
   Wifi,
-  WifiOff
+  WifiOff,
+  Trash2
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
 import { useTranslation } from '../i18n';
@@ -31,9 +32,10 @@ import { parseRupees } from '../utils/money';
 import { isValidUpiId } from '../utils/whatsapp';
 import { getPinConfig, setupAppPin, disableAppPin } from '../utils/pinAuth';
 import { getBackupStatus, exportCsvLedger, exportJsonBackup } from '../utils/backupService';
+import { DEFAULT_SHOP_SETTINGS } from '../data/mockData';
 
 export default function SettingsView() {
-  const { customers, transactions, shopSettings, setShopSettings, resetToDemoData, restoreBackupData } = useKhata();
+  const { customers, transactions, shopSettings, setShopSettings, resetToDemoData, clearAllData, restoreBackupData } = useKhata();
   const { t } = useTranslation();
   const [formData, setFormData] = useState({ ...shopSettings });
   const [saved, setSaved] = useState(false);
@@ -108,6 +110,16 @@ export default function SettingsView() {
     if (window.confirm(confirmMsg)) {
       resetToDemoData();
       alert('डेमो डेटा सफलतापूर्वक लोड हो गया!');
+      setBackupStatus(getBackupStatus());
+    }
+  };
+
+  const handleClearAllData = () => {
+    const confirmMsg = 'क्या आप वाकई सारा खाता-बही डेटा साफ़ करना चाहते हैं? इससे सभी मौजूदा लेन-देन और ग्राहक हट जाएंगे और एक नया, खाली (Fresh) खाता शुरू होगा।';
+    if (window.confirm(confirmMsg)) {
+      clearAllData();
+      setFormData({ ...DEFAULT_SHOP_SETTINGS, isDemoLoaded: false });
+      alert('सारा डेटा साफ़ कर दिया गया है। आपका खाता अब बिल्कुल नया और खाली है!');
       setBackupStatus(getBackupStatus());
     }
   };
@@ -416,20 +428,31 @@ export default function SettingsView() {
         </div>
       </div>
 
-      {/* Demo Data Management (C1) */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-2">
-        <h4 className="text-xs font-bold text-slate-800">परीक्षण एवं डेमो डेटा (Demo Data)</h4>
+      {/* Demo Data Management & Clean Slate (C1) */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-2.5">
+        <h4 className="text-xs font-bold text-slate-800">डेटा रीसेट एवं फ़्रेश शुरुआत (Data Reset)</h4>
         <p className="text-[11px] text-slate-500">
-          यदि आप ऐप के सभी फीचर्स टेस्ट करना चाहते हैं, तो डेमो किराना खाता लोड कर सकते हैं।
+          टेस्टिंग के लिए डेमो डेटा लोड कर सकते हैं, या सारा डेटा साफ़ करके एकदम नई शुरुआत कर सकते हैं।
         </p>
-        <button
-          type="button"
-          onClick={handleLoadDemoData}
-          className="w-full py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold flex items-center justify-center gap-1.5 transition"
-        >
-          <RotateCcw className="w-3.5 h-3.5 text-amber-700" />
-          <span>डेमो डेटा लोड करें (Load Demo Store)</span>
-        </button>
+        <div className="space-y-2 pt-1">
+          <button
+            type="button"
+            onClick={handleLoadDemoData}
+            className="w-full py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold flex items-center justify-center gap-1.5 transition"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-amber-700" />
+            <span>डेमो डेटा लोड करें (Load Demo Store)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleClearAllData}
+            className="w-full py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold flex items-center justify-center gap-1.5 transition"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-red-600" />
+            <span>सारा डेटा साफ़ करें (Clear All / Fresh Start)</span>
+          </button>
+        </div>
       </div>
 
       <div className="text-center py-2 text-xs text-slate-400">

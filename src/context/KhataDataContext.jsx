@@ -443,6 +443,22 @@ export function KhataDataProvider({ children, onRegisterUndo }) {
   }, [customers, transactions, shopSettings]);
 
   /**
+   * Clear all customer and transaction data for a completely fresh start
+   */
+  const clearAllData = useCallback(() => {
+    createDataSnapshot({ customers, transactions, shopSettings });
+    setCustomers([]);
+    setTransactions([]);
+    const freshSettings = { ...DEFAULT_SHOP_SETTINGS, isDemoLoaded: false };
+    setShopSettings(freshSettings);
+    saveAtomicStore({
+      customers: [],
+      transactions: [],
+      shopSettings: freshSettings
+    });
+  }, [customers, transactions, shopSettings]);
+
+  /**
    * Restore full store from backup JSON with strict schema validation & snapshot (A6)
    */
   const restoreBackupData = useCallback((backupData, mode = 'replace') => {
@@ -521,6 +537,7 @@ export function KhataDataProvider({ children, onRegisterUndo }) {
       editTransaction,
       deleteTransaction,
       resetToDemoData,
+      clearAllData,
       restoreBackupData,
     }}>
       {children}
