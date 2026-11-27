@@ -10,7 +10,8 @@ import {
   AlertCircle 
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
-import { formatDisplayDate } from '../utils/dateUtils';
+import { formatDisplayDate, toLocalDateKey } from '../utils/dateUtils';
+import { parseRupees, formatCurrency } from '../utils/money';
 
 export default function ReportsView() {
   const { 
@@ -21,16 +22,17 @@ export default function ReportsView() {
     shopSettings 
   } = useKhata();
 
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayTxns = transactions.filter(t => t.date.startsWith(todayStr));
+  const todayStr = toLocalDateKey(new Date());
+  const activeTxns = transactions.filter(t => !t.deletedAt);
+  const todayTxns = activeTxns.filter(t => toLocalDateKey(t.date) === todayStr);
 
   const todayCredit = todayTxns
     .filter(t => t.type === 'credit')
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    .reduce((sum, t) => sum + parseRupees(t.amount), 0);
 
   const todayPayment = todayTxns
     .filter(t => t.type === 'payment')
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    .reduce((sum, t) => sum + parseRupees(t.amount), 0);
 
   const handlePrint = () => {
     window.print();
@@ -128,7 +130,7 @@ export default function ReportsView() {
                     </span>
                   </div>
                   <div className={`font-black text-sm ${isCredit ? 'text-red-600' : 'text-emerald-600'}`}>
-                    {isCredit ? '+' : '-'} ₹{Number(t.amount).toLocaleString('en-IN')}
+                    {isCredit ? '+' : '-'} ₹{parseRupees(t.amount).toLocaleString('en-IN')}
                   </div>
                 </div>
               );

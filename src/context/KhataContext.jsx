@@ -1,104 +1,185 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { INITIAL_CUSTOMERS, INITIAL_TRANSACTIONS, DEFAULT_SHOP_SETTINGS } from '../data/mockData';
-import { isOverdue } from '../utils/dateUtils';
+import { toLocalDateKey, isOverdue } from '../utils/dateUtils';
 import { playSuccessChime } from '../utils/soundEffects';
+import { parseRupees, isValidAmount } from '../utils/money';
+import { generateId } from '../utils/idUtils';
+import { loadAtomicStore, saveAtomicStore, createDataSnapshot, requestPersistentStorage } from '../utils/storage';
+import { validateBackupSchema } from '../utils/backupValidation';
 
 const KhataContext = createContext();
 
-const STORAGE_KEY = 'bolkhata_v1_store';
+const AVATAR_COLORS = [
+  'bg-emerald-600', 'bg-blue-600', 'bg-indigo-600',
+  'bg-purple-600', 'bg-amber-600', 'bg-teal-600', 'bg-rose-600'
+];
+
+/**
+ * Single source of truth helper for building customer records (A7)
+ */
+function createCustomerRecord({
+  id,
+  name,
+  phone = '',
+  address = '',
+  creditLimit = 5000,
+  notes = '',
+  source = 'manual'
+}) {
+  const randomColor = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
+  return {
+    id: id || generateId('cust'),
+    name: (name || '').trim(),
+    phone: (phone || '').trim(),
+    address: (address || '').trim(),
+    creditLimit: parseRupees(creditLimit) || 5000,
+    avatarColor: randomColor,
+    createdAt: new Date().toISOString(),
+    lastTransactionDate: new Date().toISOString(),
+    dueDate: null,
+    notes: (notes || '').trim(),
+    source
+  };
+}
 
 export function KhataProvider({ children }) {
-  // Load from localStorage or use initial preloaded data
+  // Load atomically from single primary store key or legacy migration (A9)
+  const initialStoreRef = useRef(null);
+  if (!initialStoreRef.current) {
+    initialStoreRef.current = loadAtomicStore();
+  }
+
   const [customers, setCustomers] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_customers`);
-      return saved ? JSON.parse(saved) : INITIAL_CUSTOMERS;
-    } catch (e) {
-      return INITIAL_CUSTOMERS;
+    if (initialStoreRef.current && Array.isArray(initialStoreRef.current.customers)) {
+      return initialStoreRef.current.customers;
     }
+    // For fresh installations, start clean with empty ledger (C1)
+    return [];
   });
 
   const [transactions, setTransactions] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_transactions`);
-      return saved ? JSON.parse(saved) : INITIAL_TRANSACTIONS;
-    } catch (e) {
-      return INITIAL_TRANSACTIONS;
+    if (initialStoreRef.current && Array.isArray(initialStoreRef.current.transactions)) {
+      return initialStoreRef.current.transactions;
     }
+    return [];
   });
 
   const [shopSettings, setShopSettings] = useState(() => {
-    try {
-      const saved = localStorage.getItem(`${STORAGE_KEY}_settings`);
-      return saved ? JSON.parse(saved) : DEFAULT_SHOP_SETTINGS;
-    } catch (e) {
-      return DEFAULT_SHOP_SETTINGS;
+    if (initialStoreRef.current && initialStoreRef.current.shopSettings) {
+      return initialStoreRef.current.shopSettings;
     }
+    return { ...DEFAULT_SHOP_SETTINGS };
   });
 
   // Modal & Navigation States
-  const [activeModal, setActiveModal] = useState(null); 
-  // 'confirm' | 'balance_query' | 'manual_entry' | 'whatsapp_reminder' | 'settings' | null
-
+  const [activeModal, setActiveModal] = useState(null);
   const [modalPayload, setModalPayload] = useState(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [customerFilter, setCustomerFilter] = useState('all'); // 'all' | 'pending' | 'cleared' | 'overdue'
   const [searchQuery, setSearchQuery] = useState('');
+  const [undoAction, setUndoAction] = useState(null);
+  const undoTimerRef = useRef(null);
 
-  // Persist to localStorage
+  // Request persistent storage on mount
   useEffect(() => {
-    try {
-      localStorage.setItem(`${STORAGE_KEY}_customers`, JSON.stringify(customers));
-    } catch (e) {
-      console.error('Failed to save customers', e);
-    }
-  }, [customers]);
+    requestPersistentStorage();
+  }, []);
 
+  // Atomic storage persistence on state change (A9)
   useEffect(() => {
-    try {
-      localStorage.setItem(`${STORAGE_KEY}_transactions`, JSON.stringify(transactions));
-    } catch (e) {
-      console.error('Failed to save transactions', e);
-    }
-  }, [transactions]);
+    saveAtomicStore({
+      customers,
+      transactions,
+      shopSettings
+    });
+  }, [customers, transactions, shopSettings]);
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(`${STORAGE_KEY}_settings`, JSON.stringify(shopSettings));
-    } catch (e) {
-      console.error('Failed to save settings', e);
-    }
-  }, [shopSettings]);
-
-  // Recalculate customer balance based on transactions
-  const getCustomerBalance = (customerId) => {
-    const custTxns = transactions.filter(t => t.customerId === customerId);
-    let bal = 0;
-    for (const t of custTxns) {
+  // A1: Single Source of Truth for Balance
+  // Derive customer balances dynamically from active (non-soft-deleted) transactions
+  const customerBalances = useMemo(() => {
+    const balances = {};
+    for (const t of transactions) {
+      if (t.deletedAt) continue;
+      const cid = t.customerId;
+      if (!cid) continue;
+      const amt = parseRupees(t.amount);
       if (t.type === 'credit') {
-        bal += Number(t.amount);
+        balances[cid] = (balances[cid] || 0) + amt;
       } else if (t.type === 'payment') {
-        bal -= Number(t.amount);
+        balances[cid] = (balances[cid] || 0) - amt;
       }
     }
-    return bal;
-  };
+    // Round each balance to 2 decimal places to avoid floating point drift
+    for (const cid in balances) {
+      balances[cid] = Math.round(balances[cid] * 100) / 100;
+    }
+    return balances;
+  }, [transactions]);
+
+  const getCustomerBalance = useCallback((customerId) => {
+    return customerBalances[customerId] || 0;
+  }, [customerBalances]);
+
+  // Customers enriched with derived balances for consumers
+  const customersWithBalance = useMemo(() => {
+    return customers.map(c => ({
+      ...c,
+      balance: customerBalances[c.id] || 0
+    }));
+  }, [customers, customerBalances]);
 
   /**
-   * Check for potential duplicate transactions:
-   * Same customer, same amount, same type recorded recently (within last 30 minutes or today)
+   * Customer matching hierarchy (A4):
+   * 1. Explicit customerId
+   * 2. Normalized 10-digit phone number
+   * 3. Exact normalized name
    */
-  const checkDuplicateTransaction = (customerId, amount, type) => {
-    if (!customerId || !amount) return { isDuplicate: false };
-    const numericAmount = Number(amount);
-    const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const findCustomerMatch = useCallback(({ customerId, phone, name }) => {
+    if (customerId) {
+      const match = customersWithBalance.find(c => c.id === customerId);
+      if (match) return { match, matches: [match] };
+    }
 
-    const dup = transactions.find(t => 
-      t.customerId === customerId &&
-      Number(t.amount) === numericAmount &&
-      t.type === type &&
-      t.date >= thirtyMinsAgo
-    );
+    if (phone) {
+      const cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
+      if (cleanPhone.length === 10) {
+        const matches = customersWithBalance.filter(c => {
+          const cPhone = (c.phone || '').replace(/\D/g, '').slice(-10);
+          return cPhone === cleanPhone;
+        });
+        if (matches.length === 1) return { match: matches[0], matches };
+        if (matches.length > 1) return { match: null, matches, ambiguous: true };
+      }
+    }
+
+    if (name && typeof name === 'string') {
+      const cleanName = name.trim().toLowerCase();
+      if (cleanName) {
+        const matches = customersWithBalance.filter(c => c.name.trim().toLowerCase() === cleanName);
+        if (matches.length === 1) return { match: matches[0], matches };
+        if (matches.length > 1) return { match: null, matches, ambiguous: true };
+      }
+    }
+
+    return { match: null, matches: [] };
+  }, [customersWithBalance]);
+
+  /**
+   * Check for duplicate transactions within 30 minutes using timestamps (A2)
+   */
+  const checkDuplicateTransaction = useCallback((customerId, amount, type) => {
+    if (!customerId || !amount) return { isDuplicate: false };
+    const numericAmount = parseRupees(amount);
+    const nowTime = Date.now();
+    const thirtyMinsMs = 30 * 60 * 1000;
+
+    const dup = transactions.find(t => {
+      if (t.deletedAt) return false;
+      if (t.customerId !== customerId || t.type !== type) return false;
+      if (Math.abs(parseRupees(t.amount) - numericAmount) > 0.01) return false;
+      const tTime = new Date(t.date).getTime();
+      return Math.abs(nowTime - tTime) <= thirtyMinsMs;
+    });
 
     if (dup) {
       return {
@@ -109,12 +190,12 @@ export function KhataProvider({ children }) {
     }
 
     return { isDuplicate: false };
-  };
+  }, [transactions]);
 
   /**
-   * Add a new transaction (with automatic customer creation if needed)
+   * Add a new transaction (A1, A4, A5, A7, A8)
    */
-  const addTransaction = ({
+  const addTransaction = useCallback(({
     customerId,
     customerName,
     phone,
@@ -126,60 +207,66 @@ export function KhataProvider({ children }) {
     notes = '',
     rawVoiceCommand = ''
   }) => {
+    // Input Validation (A5)
+    if (!customerName || typeof customerName !== 'string' || !customerName.trim()) {
+      return { success: false, error: 'ग्राहक का नाम आवश्यक है (Customer name is required)' };
+    }
+
+    const numericAmount = parseRupees(amount);
+    if (!isValidAmount(numericAmount)) {
+      return { success: false, error: 'मान्य राशि दर्ज करें (Enter a valid amount greater than 0)' };
+    }
+
+    if (type !== 'credit' && type !== 'payment') {
+      return { success: false, error: 'लेन-देन प्रकार अमान्य है (Invalid transaction type)' };
+    }
+
     let targetCustomerId = customerId;
+    let targetCustomerName = customerName.trim();
 
-    // If new customer, create first
+    // Match customer using hierarchy (A4)
     if (!targetCustomerId) {
-      const existing = customers.find(c => c.name.toLowerCase() === customerName.toLowerCase().trim());
-      if (existing) {
-        targetCustomerId = existing.id;
+      const matchResult = findCustomerMatch({ customerId, phone, name: targetCustomerName });
+      if (matchResult.match) {
+        targetCustomerId = matchResult.match.id;
+        targetCustomerName = matchResult.match.name;
       } else {
-        const newCustId = `cust_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-        const colors = ['bg-emerald-600', 'bg-blue-600', 'bg-indigo-600', 'bg-purple-600', 'bg-amber-600', 'bg-teal-600'];
-        const randomColor = colors[Math.floor(Math.random() * colors.length)];
-        
-        const newCustomer = {
-          id: newCustId,
-          name: customerName.trim(),
-          phone: phone || '',
-          address: 'Local Customer',
-          balance: 0,
-          creditLimit: 5000,
-          avatarColor: randomColor,
-          createdAt: new Date().toISOString(),
-          lastTransactionDate: new Date().toISOString(),
-          dueDate: type === 'credit' ? dueDate : null,
-          notes: 'Added via voice transaction'
-        };
-
+        // Create new customer using unified helper without storing balance (A1, A7)
+        const newCustomer = createCustomerRecord({
+          name: targetCustomerName,
+          phone,
+          source: rawVoiceCommand ? 'voice' : 'manual'
+        });
         setCustomers(prev => [newCustomer, ...prev]);
-        targetCustomerId = newCustId;
+        targetCustomerId = newCustomer.id;
       }
     }
 
+    const txnId = generateId('txn');
     const newTxn = {
-      id: `txn_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      id: txnId,
       customerId: targetCustomerId,
-      customerName: customerName.trim(),
+      customerName: targetCustomerName,
       type,
-      amount: Number(amount),
-      items: Array.isArray(items) ? items : [items].filter(Boolean),
-      paymentMethod,
+      amount: numericAmount,
+      items: Array.isArray(items) ? items.filter(Boolean) : [items].filter(Boolean),
+      paymentMethod: type === 'payment' ? paymentMethod : 'Khata',
       date: new Date().toISOString(),
-      dueDate: type === 'credit' ? dueDate : null,
-      notes: notes || '',
-      rawVoiceCommand: rawVoiceCommand || ''
+      dueDate: type === 'credit' ? (dueDate || null) : null,
+      notes: (notes || '').trim(),
+      rawVoiceCommand: rawVoiceCommand || '',
+      deletedAt: null,
+      editedAt: null,
+      history: []
     };
 
     setTransactions(prev => [newTxn, ...prev]);
 
-    // Update customer lastTransactionDate & dueDate
+    // Update customer metadata (last transaction timestamp & dueDate) without storing balance
     setCustomers(prev => prev.map(c => {
       if (c.id === targetCustomerId) {
-        const updatedBal = type === 'credit' ? (c.balance + Number(amount)) : (c.balance - Number(amount));
         return {
           ...c,
-          balance: updatedBal,
           lastTransactionDate: new Date().toISOString(),
           dueDate: type === 'credit' && dueDate ? dueDate : c.dueDate
         };
@@ -191,55 +278,166 @@ export function KhataProvider({ children }) {
       playSuccessChime();
     }
 
-    return newTxn;
-  };
+    // Register Undo capability (A3)
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoAction({
+      type: 'add',
+      transactionId: txnId,
+      message: `₹${numericAmount} लेन-देन जोड़ा गया`
+    });
+    undoTimerRef.current = setTimeout(() => {
+      setUndoAction(null);
+    }, 7000);
+
+    return { success: true, transaction: newTxn };
+  }, [findCustomerMatch, shopSettings.soundEnabled]);
 
   /**
-   * Add a new customer to ledger directly
+   * Edit an existing transaction with audit trail (A3)
    */
-  const addNewCustomer = ({
+  const editTransaction = useCallback((txnId, updates) => {
+    if (!txnId) return { success: false, error: 'Transaction ID required' };
+
+    let foundTxn = null;
+    setTransactions(prev => prev.map(t => {
+      if (t.id === txnId) {
+        foundTxn = t;
+        const previousSnapshot = {
+          amount: t.amount,
+          type: t.type,
+          date: t.date,
+          items: t.items,
+          dueDate: t.dueDate,
+          notes: t.notes,
+          paymentMethod: t.paymentMethod,
+          recordedAt: t.editedAt || t.date
+        };
+
+        const newAmount = updates.amount !== undefined ? parseRupees(updates.amount) : t.amount;
+        const newType = updates.type || t.type;
+
+        return {
+          ...t,
+          ...updates,
+          amount: newAmount,
+          type: newType,
+          editedAt: new Date().toISOString(),
+          history: [...(t.history || []), previousSnapshot]
+        };
+      }
+      return t;
+    }));
+
+    if (!foundTxn) {
+      return { success: false, error: 'Transaction not found' };
+    }
+
+    return { success: true };
+  }, []);
+
+  /**
+   * Soft-delete a transaction with audit trail and Undo (A3)
+   */
+  const deleteTransaction = useCallback((txnId) => {
+    if (!txnId) return { success: false, error: 'Transaction ID required' };
+
+    let deletedTxn = null;
+    setTransactions(prev => prev.map(t => {
+      if (t.id === txnId) {
+        deletedTxn = t;
+        return {
+          ...t,
+          deletedAt: new Date().toISOString()
+        };
+      }
+      return t;
+    }));
+
+    if (!deletedTxn) {
+      return { success: false, error: 'Transaction not found' };
+    }
+
+    // Register 7-second Undo
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoAction({
+      type: 'delete',
+      transactionId: txnId,
+      message: `₹${deletedTxn.amount} लेन-देन हटाया गया`
+    });
+    undoTimerRef.current = setTimeout(() => {
+      setUndoAction(null);
+    }, 7000);
+
+    return { success: true };
+  }, []);
+
+  /**
+   * Undo the last added or deleted transaction (A3)
+   */
+  const undoLastAction = useCallback(() => {
+    if (!undoAction) return;
+
+    if (undoAction.type === 'delete') {
+      // Restore deleted transaction
+      setTransactions(prev => prev.map(t => {
+        if (t.id === undoAction.transactionId) {
+          return { ...t, deletedAt: null };
+        }
+        return t;
+      }));
+    } else if (undoAction.type === 'add') {
+      // Soft delete the newly added transaction
+      setTransactions(prev => prev.map(t => {
+        if (t.id === undoAction.transactionId) {
+          return { ...t, deletedAt: new Date().toISOString() };
+        }
+        return t;
+      }));
+    }
+
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoAction(null);
+  }, [undoAction]);
+
+  /**
+   * Add a new customer to ledger directly (A1, A5, A7)
+   */
+  const addNewCustomer = useCallback(({
     name,
     phone = '',
-    address = 'Local Customer',
+    address = '',
     openingBalance = 0,
     creditLimit = 5000,
     notes = ''
   }) => {
-    if (!name || !name.trim()) return { success: false, error: 'Name is required' };
+    if (!name || typeof name !== 'string' || !name.trim()) {
+      return { success: false, error: 'नाम आवश्यक है (Name is required)' };
+    }
     const cleanName = name.trim();
 
-    // Check if customer already exists
-    const existing = customers.find(c => c.name.toLowerCase() === cleanName.toLowerCase());
-    if (existing) {
-      return { success: false, isExisting: true, customer: existing };
+    // Check if customer already exists (by name or phone)
+    const match = findCustomerMatch({ name: cleanName, phone });
+    if (match.match) {
+      return { success: false, isExisting: true, customer: match.match };
     }
 
-    const newCustId = `cust_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    const colors = ['bg-emerald-600', 'bg-blue-600', 'bg-indigo-600', 'bg-purple-600', 'bg-amber-600', 'bg-teal-600'];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-
-    const numOpeningBal = Number(openingBalance) || 0;
-
-    const newCustomer = {
-      id: newCustId,
+    const newCustomer = createCustomerRecord({
       name: cleanName,
-      phone: phone ? phone.trim() : '',
-      address: address || 'Local Customer',
-      balance: numOpeningBal,
-      creditLimit: Number(creditLimit) || 5000,
-      avatarColor: randomColor,
-      createdAt: new Date().toISOString(),
-      lastTransactionDate: new Date().toISOString(),
-      dueDate: null,
-      notes: notes || 'Added via BolKhata AI'
-    };
+      phone,
+      address,
+      creditLimit,
+      notes,
+      source: 'manual'
+    });
 
     setCustomers(prev => [newCustomer, ...prev]);
 
+    // Record Opening Balance ONLY as a credit transaction (A1)
+    const numOpeningBal = parseRupees(openingBalance);
     if (numOpeningBal > 0) {
       const initialTxn = {
-        id: `txn_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-        customerId: newCustId,
+        id: generateId('txn'),
+        customerId: newCustomer.id,
         customerName: cleanName,
         type: 'credit',
         amount: numOpeningBal,
@@ -248,7 +446,10 @@ export function KhataProvider({ children }) {
         date: new Date().toISOString(),
         dueDate: null,
         notes: 'Opening balance',
-        rawVoiceCommand: 'Initial balance'
+        rawVoiceCommand: '',
+        deletedAt: null,
+        editedAt: null,
+        history: []
       };
       setTransactions(prev => [initialTxn, ...prev]);
     }
@@ -257,76 +458,118 @@ export function KhataProvider({ children }) {
       playSuccessChime();
     }
 
-    return { success: true, isExisting: false, customer: newCustomer };
-  };
+    return {
+      success: true,
+      isExisting: false,
+      customer: { ...newCustomer, balance: numOpeningBal }
+    };
+  }, [findCustomerMatch, shopSettings.soundEnabled]);
 
   /**
-   * Reset store to initial demo state
+   * Reset store to initial demo state (C1)
    */
-  const resetToDemoData = () => {
-    setCustomers(INITIAL_CUSTOMERS);
+  const resetToDemoData = useCallback(() => {
+    // Save snapshot before resetting
+    createDataSnapshot({ customers, transactions, shopSettings });
+    setCustomers(INITIAL_CUSTOMERS.map(c => {
+      const { balance, ...rest } = c;
+      return rest;
+    }));
     setTransactions(INITIAL_TRANSACTIONS);
     setShopSettings(DEFAULT_SHOP_SETTINGS);
-    localStorage.removeItem(`${STORAGE_KEY}_customers`);
-    localStorage.removeItem(`${STORAGE_KEY}_transactions`);
-    localStorage.removeItem(`${STORAGE_KEY}_settings`);
-  };
+  }, [customers, transactions, shopSettings]);
 
   /**
-   * Restore full store from backup JSON
+   * Restore full store from backup JSON with strict schema validation & snapshot (A6)
    */
-  const restoreBackupData = (backupData) => {
-    try {
-      if (backupData.customers && Array.isArray(backupData.customers)) {
-        setCustomers(backupData.customers);
-      }
-      if (backupData.transactions && Array.isArray(backupData.transactions)) {
-        setTransactions(backupData.transactions);
-      }
-      if (backupData.shopSettings) {
-        setShopSettings(backupData.shopSettings);
-      }
-      return { success: true };
-    } catch (e) {
-      return { success: false, error: e.message };
+  const restoreBackupData = useCallback((backupData, mode = 'replace') => {
+    const validation = validateBackupSchema(backupData);
+    if (!validation.isValid) {
+      return { success: false, error: validation.error };
     }
-  };
 
-  // Quick stats calculation
-  const totalPendingUdhaar = customers.reduce((sum, c) => sum + (c.balance > 0 ? c.balance : 0), 0);
-  
-  // Today's collections
-  const todayStr = new Date().toISOString().split('T')[0];
-  const paymentsToday = transactions
-    .filter(t => t.type === 'payment' && t.date.startsWith(todayStr))
-    .reduce((sum, t) => sum + Number(t.amount), 0);
+    const { sanitizedData } = validation;
 
-  const overdueCustomers = customers.filter(c => c.balance > 0 && c.dueDate && isOverdue(c.dueDate));
-  const activeCustomersCount = customers.filter(c => c.balance > 0).length;
+    // Automated safety snapshot of current data before touching anything (A6)
+    const snapshotResult = createDataSnapshot({ customers, transactions, shopSettings });
 
-  // Filtered customer list
-  const filteredCustomers = customers.filter(c => {
-    // Search match
-    const q = searchQuery.toLowerCase().trim();
-    const matchesSearch = !q || c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q));
-    if (!matchesSearch) return false;
+    if (mode === 'merge') {
+      // Merge customers by id or phone
+      const existingIds = new Set(customers.map(c => c.id));
+      const newCustomers = sanitizedData.customers.filter(c => !existingIds.has(c.id));
 
-    // Category filter
-    if (customerFilter === 'pending') return c.balance > 0;
-    if (customerFilter === 'cleared') return c.balance <= 0;
-    if (customerFilter === 'overdue') return c.balance > 0 && c.dueDate && isOverdue(c.dueDate);
+      const existingTxnIds = new Set(transactions.map(t => t.id));
+      const newTxns = sanitizedData.transactions.filter(t => !existingTxnIds.has(t.id));
 
-    return true; // 'all'
-  });
+      setCustomers(prev => [...prev, ...newCustomers]);
+      setTransactions(prev => [...prev, ...newTxns]);
+    } else {
+      // Replace mode
+      setCustomers(sanitizedData.customers);
+      setTransactions(sanitizedData.transactions);
+      if (sanitizedData.shopSettings && sanitizedData.shopSettings.shopName) {
+        setShopSettings(sanitizedData.shopSettings);
+      }
+    }
 
-  const selectedCustomer = customers.find(c => c.id === selectedCustomerId) || null;
-  const customerTransactions = selectedCustomerId 
-    ? transactions.filter(t => t.customerId === selectedCustomerId)
-    : [];
+    return {
+      success: true,
+      snapshotKey: snapshotResult.key,
+      customerCount: sanitizedData.customers.length,
+      transactionCount: sanitizedData.transactions.length
+    };
+  }, [customers, transactions, shopSettings]);
+
+  // Derived Financial Stats (A1, A2)
+  const totalPendingUdhaar = useMemo(() => {
+    return Object.values(customerBalances).reduce((sum, b) => sum + (b > 0 ? b : 0), 0);
+  }, [customerBalances]);
+
+  // Today's collections using local calendar date (A2)
+  const todayLocalDateKey = toLocalDateKey(new Date());
+  const paymentsToday = useMemo(() => {
+    return transactions
+      .filter(t => !t.deletedAt && t.type === 'payment' && toLocalDateKey(t.date) === todayLocalDateKey)
+      .reduce((sum, t) => sum + parseRupees(t.amount), 0);
+  }, [transactions, todayLocalDateKey]);
+
+  const overdueCustomers = useMemo(() => {
+    return customersWithBalance.filter(c => c.balance > 0 && c.dueDate && isOverdue(c.dueDate));
+  }, [customersWithBalance]);
+
+  const activeCustomersCount = useMemo(() => {
+    return customersWithBalance.filter(c => c.balance > 0).length;
+  }, [customersWithBalance]);
+
+  // Filtered customer list for UI
+  const filteredCustomers = useMemo(() => {
+    return customersWithBalance.filter(c => {
+      const q = (searchQuery || '').toLowerCase().trim();
+      const matchesSearch = !q || c.name.toLowerCase().includes(q) || (c.phone && c.phone.includes(q));
+      if (!matchesSearch) return false;
+
+      if (customerFilter === 'pending') return c.balance > 0;
+      if (customerFilter === 'cleared') return c.balance <= 0;
+      if (customerFilter === 'overdue') return c.balance > 0 && c.dueDate && isOverdue(c.dueDate);
+
+      return true;
+    });
+  }, [customersWithBalance, searchQuery, customerFilter]);
+
+  const selectedCustomer = useMemo(() => {
+    if (!selectedCustomerId) return null;
+    return customersWithBalance.find(c => c.id === selectedCustomerId) || null;
+  }, [selectedCustomerId, customersWithBalance]);
+
+  const customerTransactions = useMemo(() => {
+    if (!selectedCustomerId) return [];
+    return transactions.filter(t => !t.deletedAt && t.customerId === selectedCustomerId);
+  }, [selectedCustomerId, transactions]);
 
   return (
     <KhataContext.Provider value={{
-      customers,
+      customers: customersWithBalance,
+      rawCustomers: customers,
       transactions,
       shopSettings,
       setShopSettings,
@@ -348,9 +591,15 @@ export function KhataProvider({ children }) {
       overdueCustomers,
       activeCustomersCount,
       getCustomerBalance,
+      findCustomerMatch,
       checkDuplicateTransaction,
       addNewCustomer,
       addTransaction,
+      editTransaction,
+      deleteTransaction,
+      undoAction,
+      undoLastAction,
+      setUndoAction,
       resetToDemoData,
       restoreBackupData,
     }}>

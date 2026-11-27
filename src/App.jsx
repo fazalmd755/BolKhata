@@ -15,6 +15,7 @@ import BalanceQueryModal from './components/BalanceQueryModal';
 import ManualEntryModal from './components/ManualEntryModal';
 import CustomerLedgerModal from './components/CustomerLedgerModal';
 import WhatsAppReminderModal from './components/WhatsAppReminderModal';
+import UndoToast from './components/UndoToast';
 import { Search, PlusCircle } from 'lucide-react';
 
 function AppLayout() {
@@ -32,7 +33,10 @@ function AppLayout() {
     activeCustomersCount, 
     overdueCustomers, 
     setActiveModal,
-    setModalPayload 
+    setModalPayload,
+    undoAction,
+    undoLastAction,
+    setUndoAction
   } = useKhata();
 
   const filters = [
@@ -180,6 +184,11 @@ function AppLayout() {
       <ManualEntryModal />
       <CustomerLedgerModal />
       <WhatsAppReminderModal />
+      <UndoToast
+        undoAction={undoAction}
+        onUndo={undoLastAction}
+        onDismiss={() => setUndoAction(null)}
+      />
     </>
   );
 }

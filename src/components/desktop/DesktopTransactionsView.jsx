@@ -19,7 +19,9 @@ export default function DesktopTransactionsView() {
   const [filterType, setFilterType] = useState('all'); // 'all' | 'credit' | 'payment'
   const [query, setQuery] = useState('');
 
-  const filteredTxns = transactions.filter(t => {
+  const activeTxns = transactions.filter(t => !t.deletedAt);
+
+  const filteredTxns = activeTxns.filter(t => {
     if (filterType !== 'all' && t.type !== filterType) return false;
     if (query) {
       const q = query.toLowerCase();
@@ -92,7 +94,7 @@ export default function DesktopTransactionsView() {
                 filterType === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              सभी ({transactions.length})
+              सभी ({activeTxns.length})
             </button>
             <button
               onClick={() => setFilterType('credit')}
@@ -100,7 +102,7 @@ export default function DesktopTransactionsView() {
                 filterType === 'credit' ? 'bg-white text-red-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              उधार ({transactions.filter(t => t.type === 'credit').length})
+              उधार ({activeTxns.filter(t => t.type === 'credit').length})
             </button>
             <button
               onClick={() => setFilterType('payment')}
@@ -108,7 +110,7 @@ export default function DesktopTransactionsView() {
                 filterType === 'payment' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              जमा ({transactions.filter(t => t.type === 'payment').length})
+              जमा ({activeTxns.filter(t => t.type === 'payment').length})
             </button>
           </div>
 

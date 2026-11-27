@@ -12,11 +12,13 @@ import {
   ArrowDownLeft, 
   Phone,
   ShieldAlert,
-  Info
+  Info,
+  Users
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
 import confetti from 'canvas-confetti';
 import { validateAndEnhanceIndianName, cleanCustomerCandidateName } from '../utils/indianNameValidator.js';
+import { parseRupees, isValidAmount } from '../utils/money.js';
 
 export default function TransactionConfirmModal() {
   const { 
@@ -28,6 +30,7 @@ export default function TransactionConfirmModal() {
   } = useKhata();
 
   // All Hooks MUST be declared unconditionally at the top of the component
+  const [targetCustomerId, setTargetCustomerId] = useState(null);
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   const [amount, setAmount] = useState('');
@@ -38,17 +41,21 @@ export default function TransactionConfirmModal() {
   const [notes, setNotes] = useState('');
   const [ignoreDuplicateWarning, setIgnoreDuplicateWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   // Sync state whenever modalPayload changes (fixes stuck 'credit' bug!)
   useEffect(() => {
     if (modalPayload && activeModal === 'confirm') {
+      const initialCustId = modalPayload.customerId || (modalPayload.customer ? modalPayload.customer.id : null);
+      setTargetCustomerId(initialCustId);
+
       const nameVal = validateAndEnhanceIndianName(modalPayload.customerName || '', customers);
       const cleanName = (nameVal.isValid && nameVal.cleanName !== 'Customer') 
         ? nameVal.cleanName 
         : (modalPayload.customerName || '');
       setCustomerName(cleanName);
       setPhone(modalPayload.customer ? modalPayload.customer.phone : (modalPayload.phone || ''));
-      setAmount(modalPayload.amount || '');
+      setAmount(modalPayload.amount ? String(modalPayload.amount) : '');
       setType(modalPayload.type || 'credit');
       setItemsString(
         Array.isArray(modalPayload.items) ? modalPayload.items.join(', ') : (modalPayload.itemsString || '')
@@ -57,8 +64,16 @@ export default function TransactionConfirmModal() {
       setDueDate(modalPayload.dueDate || '');
       setNotes(modalPayload.notes || '');
       setIgnoreDuplicateWarning(false);
+      setSubmitError('');
     }
   }, [modalPayload, activeModal, customers]);
+
+  // Ambiguity chooser: find all customers with the same name (A4)
+  const nameMatches = useMemo(() => {
+    if (!customerName || !customerName.trim()) return [];
+    const q = customerName.toLowerCase().trim();
+    return customers.filter(c => c.name.toLowerCase().trim() === q);
+  }, [customerName, customers]);
 
   // AI Indian name reasoning & validation hook
   const nameValidation = useMemo(() => {
@@ -68,13 +83,16 @@ export default function TransactionConfirmModal() {
   // Early return ONLY AFTER all Hooks are called
   if (activeModal !== 'confirm' || !modalPayload) return null;
 
-  const isNewCustomer = Boolean(modalPayload.isNewCustomer);
+  const isNewCustomer = Boolean(modalPayload.isNewCustomer) || (!targetCustomerId && nameMatches.length === 0);
   const isDuplicate = Boolean(modalPayload.isDuplicate) && !ignoreDuplicateWarning;
 
   const handleConfirm = (e) => {
     e.preventDefault();
-    if (!customerName.trim() || !amount || Number(amount) <= 0) {
-      alert('Please provide valid customer name and amount');
+    setSubmitError('');
+
+    const numericAmount = parseRupees(amount);
+    if (!customerName.trim() || !isValidAmount(numericAmount)) {
+      setSubmitError('कृपया मान्य ग्राहक नाम और राशि दर्ज करें (Enter valid customer name and amount)');
       return;
     }
 
@@ -87,18 +105,24 @@ export default function TransactionConfirmModal() {
         .map(i => i.trim())
         .filter(Boolean);
 
-      addTransaction({
-        customerId: modalPayload.customerId,
+      const result = addTransaction({
+        customerId: targetCustomerId,
         customerName: customerName.trim(),
         phone: phone.trim(),
         type,
-        amount: Number(amount),
+        amount: numericAmount,
         items: itemsList,
         paymentMethod: type === 'payment' ? paymentMethod : 'Khata',
         dueDate: type === 'credit' ? dueDate : null,
         notes: notes.trim(),
         rawVoiceCommand: modalPayload.rawText || ''
       });
+
+      if (!result.success) {
+        setSubmitError(result.error || 'लेन-देन जोड़ने में त्रुटि हुई');
+        setIsSubmitting(false);
+        return;
+      }
 
       // Joyful celebratory confetti
       try {
@@ -115,6 +139,7 @@ export default function TransactionConfirmModal() {
       setActiveModal(null);
     } catch (err) {
       console.error('Failed to add transaction', err);
+      setSubmitError('अपेक्षित त्रुटि: ' + (err.message || 'Failed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -275,6 +300,56 @@ export default function TransactionConfirmModal() {
               className="w-full px-3 py-2 text-sm font-semibold rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
               placeholder="e.g. Ramesh Bhai"
             />
+
+            {/* Multiple Customer Matching Chooser (A4) */}
+            {nameMatches.length > 1 && (
+              <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-blue-900">
+                  <Users className="w-3.5 h-3.5 text-blue-600" />
+                  <span>एक से अधिक ग्राहक मिले (Select Customer):</span>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {nameMatches.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        setTargetCustomerId(c.id);
+                        setCustomerName(c.name);
+                        setPhone(c.phone || '');
+                      }}
+                      className={`p-2 rounded-lg text-left text-xs border transition flex items-center justify-between ${
+                        targetCustomerId === c.id
+                          ? 'bg-blue-600 text-white border-blue-600 font-bold'
+                          : 'bg-white text-slate-800 border-slate-200 hover:bg-blue-100/50'
+                      }`}
+                    >
+                      <div>
+                        <span className="font-semibold">{c.name}</span>
+                        {c.phone && <span className="text-[11px] opacity-80 ml-2">📞 {c.phone}</span>}
+                        {c.address && <span className="text-[10px] opacity-75 ml-2">({c.address})</span>}
+                      </div>
+                      <span className="text-[11px] font-bold">
+                        ₹{c.balance || 0}
+                      </span>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTargetCustomerId(null);
+                    }}
+                    className={`p-1.5 rounded-lg text-center text-xs border transition ${
+                      targetCustomerId === null
+                        ? 'bg-amber-100 text-amber-900 border-amber-300 font-bold'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    + अलग नया खाता बनाएं (Create New Customer Separate)
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Customer Phone (especially helpful for new customers & WhatsApp reminders) */}
@@ -370,6 +445,14 @@ export default function TransactionConfirmModal() {
               placeholder="e.g. Sham tak aayenge, etc."
             />
           </div>
+
+          {/* Error Message */}
+          {submitError && (
+            <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-semibold flex items-center gap-1.5">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-red-500" />
+              <span>{submitError}</span>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="pt-2 flex items-center gap-2">

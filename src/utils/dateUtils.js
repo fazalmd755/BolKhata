@@ -88,15 +88,32 @@ export function parseRelativeDate(text, intent = 'credit') {
     return formatDateISO(d);
   }
 
-  return formatDateISO(now);
+  return toLocalDateKey(now);
 }
 
-export function formatDateISO(date) {
-  const d = new Date(date);
+/**
+ * Converts any Date object, ISO string, or timestamp into local YYYY-MM-DD date key.
+ * Solves the UTC vs IST timezone bug (where entries before 5:30 AM counted as yesterday).
+ */
+export function toLocalDateKey(date = new Date()) {
+  if (!date) return '';
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) return '';
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+/**
+ * Checks if two dates fall on the same calendar date in the local timezone
+ */
+export function isSameLocalDate(dateA, dateB) {
+  return toLocalDateKey(dateA) === toLocalDateKey(dateB);
+}
+
+export function formatDateISO(date) {
+  return toLocalDateKey(date);
 }
 
 export function formatDisplayDate(dateStr) {
@@ -104,19 +121,24 @@ export function formatDisplayDate(dateStr) {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return dateStr;
   
-  const today = new Date();
+  const todayKey = toLocalDateKey(new Date());
+  const dateKey = toLocalDateKey(d);
+  
   const yesterday = new Date();
-  yesterday.setDate(today.getDate() - 1);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = toLocalDateKey(yesterday);
+  
   const tomorrow = new Date();
-  tomorrow.setDate(today.getDate() + 1);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowKey = toLocalDateKey(tomorrow);
 
-  if (d.toDateString() === today.toDateString()) {
+  if (dateKey === todayKey) {
     return 'Today, ' + d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
   }
-  if (d.toDateString() === yesterday.toDateString()) {
+  if (dateKey === yesterdayKey) {
     return 'Yesterday';
   }
-  if (d.toDateString() === tomorrow.toDateString()) {
+  if (dateKey === tomorrowKey) {
     return 'Tomorrow';
   }
 
@@ -126,31 +148,41 @@ export function formatDisplayDate(dateStr) {
 export function formatRelativeTime(dateStr) {
   if (!dateStr) return '';
   const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  
+  const todayKey = toLocalDateKey(new Date());
+  const dateKey = toLocalDateKey(d);
+  if (dateKey === todayKey) return 'Today';
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (dateKey === toLocalDateKey(yesterday)) return 'Yesterday';
+
   const now = new Date();
-  const diffMs = now - d;
+  const diffMs = now.getTime() - d.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return 'Today';
-  if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} days ago`;
+  if (diffDays >= 1 && diffDays < 7) return `${diffDays} days ago`;
   if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
   return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
 export function isOverdue(dueDateStr) {
   if (!dueDateStr) return false;
-  const due = new Date(dueDateStr);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return due < today;
+  const dueKey = toLocalDateKey(dueDateStr);
+  const todayKey = toLocalDateKey(new Date());
+  return Boolean(dueKey && todayKey && dueKey < todayKey);
 }
 
 export function getDaysOverdue(dueDateStr) {
   if (!dueDateStr) return 0;
-  const due = new Date(dueDateStr);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const diffMs = today - due;
+  const dueKey = toLocalDateKey(dueDateStr);
+  const todayKey = toLocalDateKey(new Date());
+  if (!dueKey || !todayKey || dueKey >= todayKey) return 0;
+
+  const due = new Date(dueKey + 'T00:00:00');
+  const today = new Date(todayKey + 'T00:00:00');
+  const diffMs = today.getTime() - due.getTime();
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   return days > 0 ? days : 0;
 }

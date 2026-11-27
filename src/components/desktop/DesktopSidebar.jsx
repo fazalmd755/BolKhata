@@ -37,7 +37,7 @@ export default function DesktopSidebar({ activeTab, setActiveTab, onOpenVoice, o
       id: 'transactions', 
       label: 'लेन-देन बही (Transactions)', 
       icon: Receipt,
-      badge: transactions.length,
+      badge: transactions.filter(t => !t.deletedAt).length,
       badgeColor: 'bg-slate-100 text-slate-700'
     },
     { 

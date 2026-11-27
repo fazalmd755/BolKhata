@@ -14,10 +14,15 @@ import {
   CheckCircle2, 
   Plus, 
   Clock, 
-  CreditCard 
+  CreditCard,
+  Edit2,
+  Trash2,
+  Check,
+  History
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
 import { formatDisplayDate, formatRelativeTime, isOverdue, getDaysOverdue } from '../utils/dateUtils';
+import { parseRupees, formatCurrency } from '../utils/money';
 
 export default function CustomerLedgerModal() {
   const { 
@@ -27,25 +32,32 @@ export default function CustomerLedgerModal() {
     customerTransactions, 
     setSelectedCustomerId, 
     setModalPayload,
+    editTransaction,
+    deleteTransaction,
+    getCustomerBalance,
     shopSettings 
   } = useKhata();
 
   const [filterType, setFilterType] = useState('all'); // 'all' | 'credit' | 'payment'
+  const [editingTxn, setEditingTxn] = useState(null); // { id, amount, type, notes }
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   if (activeModal !== 'customer_ledger' || !selectedCustomer) return null;
 
-  const balance = selectedCustomer.balance;
+  const balance = getCustomerBalance(selectedCustomer.id);
   const isCustOverdue = selectedCustomer.dueDate && isOverdue(selectedCustomer.dueDate) && balance > 0;
   const daysOverdue = selectedCustomer.dueDate ? getDaysOverdue(selectedCustomer.dueDate) : 0;
 
-  // Calculate running balance chronologically from earliest to latest
-  const sortedAsc = [...customerTransactions].sort((a, b) => new Date(a.date) - new Date(b.date));
+  // Calculate running balance chronologically from earliest to latest (ignoring soft-deleted)
+  const activeTxns = customerTransactions.filter(t => !t.deletedAt);
+  const sortedAsc = [...activeTxns].sort((a, b) => new Date(a.date) - new Date(b.date));
   let running = 0;
   const txnsWithRunningBalance = sortedAsc.map(t => {
+    const amt = parseRupees(t.amount);
     if (t.type === 'credit') {
-      running += Number(t.amount);
+      running += amt;
     } else {
-      running -= Number(t.amount);
+      running -= amt;
     }
     return { ...t, runningBalance: running };
   });
@@ -70,6 +82,35 @@ export default function CustomerLedgerModal() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleStartEdit = (t) => {
+    setEditingTxn({
+      id: t.id,
+      amount: t.amount,
+      type: t.type,
+      notes: t.notes || (t.items ? t.items.join(', ') : '')
+    });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingTxn) return;
+    const numAmt = parseRupees(editingTxn.amount);
+    if (numAmt <= 0) {
+      alert('कृपया मान्य राशि दर्ज करें (Enter a valid amount)');
+      return;
+    }
+    editTransaction(editingTxn.id, {
+      amount: numAmt,
+      type: editingTxn.type,
+      notes: editingTxn.notes
+    });
+    setEditingTxn(null);
+  };
+
+  const handleDelete = (txnId) => {
+    deleteTransaction(txnId);
+    setConfirmDeleteId(null);
   };
 
   return (
@@ -204,6 +245,72 @@ export default function CustomerLedgerModal() {
           ) : (
             displayTxns.map(t => {
               const isCredit = t.type === 'credit';
+              const isEditing = editingTxn && editingTxn.id === t.id;
+              const isConfirmingDelete = confirmDeleteId === t.id;
+
+              if (isEditing) {
+                return (
+                  <div key={t.id} className="bg-amber-50/80 rounded-2xl p-4 border border-amber-300 shadow-md space-y-3">
+                    <div className="flex items-center justify-between text-xs font-bold text-amber-900">
+                      <span>लेन-देन संपादित करें (Edit Transaction)</span>
+                      <button onClick={() => setEditingTxn(null)} className="text-slate-400 hover:text-slate-600">✕</button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-600 block mb-1">प्रकार (Type)</label>
+                        <select
+                          value={editingTxn.type}
+                          onChange={(e) => setEditingTxn(prev => ({ ...prev, type: e.target.value }))}
+                          className="w-full text-xs p-2 bg-white border border-slate-300 rounded-xl font-bold"
+                        >
+                          <option value="credit">उधार दिया (Credit)</option>
+                          <option value="payment">जमा मिला (Payment)</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-semibold text-slate-600 block mb-1">राशि (₹ Amount)</label>
+                        <input
+                          type="number"
+                          value={editingTxn.amount}
+                          onChange={(e) => setEditingTxn(prev => ({ ...prev, amount: e.target.value }))}
+                          className="w-full text-xs p-2 bg-white border border-slate-300 rounded-xl font-bold"
+                          min="1"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-600 block mb-1">विवरण / नोट (Note/Items)</label>
+                      <input
+                        type="text"
+                        value={editingTxn.notes}
+                        onChange={(e) => setEditingTxn(prev => ({ ...prev, notes: e.target.value }))}
+                        className="w-full text-xs p-2 bg-white border border-slate-300 rounded-xl"
+                        placeholder="सामान या टिप्पणी..."
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2 pt-1">
+                      <button
+                        onClick={() => setEditingTxn(null)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition"
+                      >
+                        रद्द करें (Cancel)
+                      </button>
+                      <button
+                        onClick={handleSaveEdit}
+                        className="px-4 py-1.5 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-xs transition flex items-center gap-1"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>सहेजें (Save)</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
+
               return (
                 <div
                   key={t.id}
@@ -217,13 +324,19 @@ export default function CustomerLedgerModal() {
                         {isCredit ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownLeft className="w-4 h-4" />}
                       </div>
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className={`text-xs font-bold ${isCredit ? 'text-red-600' : 'text-emerald-700'}`}>
                             {isCredit ? 'उधार दिया (You Gave)' : 'जमा मिला (You Got)'}
                           </span>
                           <span className="text-[10px] text-slate-400 font-medium">
                             {formatDisplayDate(t.date)}
                           </span>
+                          {t.editedAt && (
+                            <span className="text-[9px] font-semibold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded-md flex items-center gap-0.5">
+                              <History className="w-2.5 h-2.5" />
+                              संशोधित (Edited)
+                            </span>
+                          )}
                         </div>
 
                         {/* Items / Details */}
@@ -231,6 +344,13 @@ export default function CustomerLedgerModal() {
                           <div className="text-xs text-slate-700 font-semibold mt-1 flex items-center gap-1">
                             <Tag className="w-3 h-3 text-slate-400" />
                             <span>{t.items.join(', ')}</span>
+                          </div>
+                        )}
+
+                        {/* Notes */}
+                        {t.notes && (
+                          <div className="text-[11px] text-slate-600 mt-0.5">
+                            {t.notes}
                           </div>
                         )}
 
@@ -249,7 +369,7 @@ export default function CustomerLedgerModal() {
                       <div className={`text-base font-extrabold tracking-tight ${
                         isCredit ? 'text-red-600' : 'text-emerald-600'
                       }`}>
-                        {isCredit ? '+' : '-'} ₹{Number(t.amount).toLocaleString('en-IN')}
+                        {isCredit ? '+' : '-'} ₹{parseRupees(t.amount).toLocaleString('en-IN')}
                       </div>
                       <div className="text-[11px] text-slate-500 font-medium mt-0.5">
                         बाकी: <span className="font-bold text-slate-800">₹{t.runningBalance.toLocaleString('en-IN')}</span>
@@ -259,6 +379,46 @@ export default function CustomerLedgerModal() {
                       </span>
                     </div>
                   </div>
+
+                  {/* Transaction Actions: Edit / Delete */}
+                  {isConfirmingDelete ? (
+                    <div className="mt-2 pt-2 border-t border-red-100 bg-red-50/60 rounded-xl p-2.5 flex items-center justify-between text-xs">
+                      <span className="font-bold text-red-700">क्या आप वाकई इस लेन-देन को हटाना चाहते हैं?</span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-600 font-semibold text-[11px]"
+                        >
+                          रद्द करें
+                        </button>
+                        <button
+                          onClick={() => handleDelete(t.id)}
+                          className="px-2.5 py-1 rounded-lg bg-red-600 text-white font-bold text-[11px] hover:bg-red-700 shadow-2xs"
+                        >
+                          हटाएं (Delete)
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pt-1.5 border-t border-slate-100 flex items-center justify-end gap-2 text-slate-400">
+                      <button
+                        onClick={() => handleStartEdit(t)}
+                        className="text-[11px] font-semibold text-slate-500 hover:text-slate-800 px-2 py-0.5 rounded-md hover:bg-slate-100 flex items-center gap-1 transition"
+                        title="Edit Entry"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                        <span>संशोधित करें</span>
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(t.id)}
+                        className="text-[11px] font-semibold text-red-500 hover:text-red-700 px-2 py-0.5 rounded-md hover:bg-red-50 flex items-center gap-1 transition"
+                        title="Delete Entry"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        <span>हटाएं</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               );
             })

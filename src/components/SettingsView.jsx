@@ -18,6 +18,8 @@ import {
   FileSpreadsheet
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
+import { toLocalDateKey } from '../utils/dateUtils';
+import { parseRupees } from '../utils/money';
 
 export default function SettingsView() {
   const { customers, transactions, shopSettings, setShopSettings, resetToDemoData, restoreBackupData } = useKhata();
@@ -33,7 +35,7 @@ export default function SettingsView() {
 
   const handleDownloadJsonBackup = () => {
     const backup = {
-      version: '1.0',
+      schemaVersion: 2,
       appName: 'BolKhata',
       exportDate: new Date().toISOString(),
       shopSettings,
@@ -44,19 +46,20 @@ export default function SettingsView() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `bolkhata-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `bolkhata-backup-${toLocalDateKey(new Date())}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const handleDownloadCsvLedger = () => {
     const headers = ['Txn_ID', 'Date', 'Customer_Name', 'Type', 'Amount_INR', 'Items', 'Payment_Method', 'Notes'];
-    const rows = transactions.map(t => [
+    const activeTxns = transactions.filter(t => !t.deletedAt);
+    const rows = activeTxns.map(t => [
       `"${t.id}"`,
-      `"${t.date ? t.date.split('T')[0] : ''}"`,
+      `"${toLocalDateKey(t.date)}"`,
       `"${(t.customerName || '').replace(/"/g, '""')}"`,
       `"${t.type}"`,
-      Number(t.amount) || 0,
+      parseRupees(t.amount),
       `"${(Array.isArray(t.items) ? t.items.join('; ') : '').replace(/"/g, '""')}"`,
       `"${t.paymentMethod || 'Cash'}"`,
       `"${(t.notes || '').replace(/"/g, '""')}"`
@@ -66,7 +69,7 @@ export default function SettingsView() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `bolkhata-ledger-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `bolkhata-ledger-${toLocalDateKey(new Date())}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

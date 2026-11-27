@@ -43,8 +43,9 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
   const totalOverdueAmount = overdueCustomers.reduce((sum, c) => sum + c.balance, 0);
   const clearedCustomersCount = customers.filter(c => c.balance <= 0).length;
 
+  const activeTransactions = transactions.filter(t => !t.deletedAt);
   // Recent 8 transactions for the desktop table
-  const recentTransactions = transactions.slice(0, 8);
+  const recentTransactions = activeTransactions.slice(0, 8);
 
   // Top debtors sorted by balance
   const topDebtors = [...customers]

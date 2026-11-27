@@ -31,7 +31,7 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
     shopSettings 
   } = useKhata();
 
-  const recentTxns = transactions.slice(0, 5);
+  const recentTxns = transactions.filter(t => !t.deletedAt).slice(0, 5);
 
   const handleOpenCustomer = (cid) => {
     setSelectedCustomerId(cid);
