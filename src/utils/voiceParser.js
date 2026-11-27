@@ -200,8 +200,8 @@ export function classifyIntent(text) {
 
   // Credit keywords
   const hasExplicitCredit = 
-    /\b(udhaar|udhar|baaki\s*likho|khata\s*likho|maal\s*diya|samaan\s*diya|samaan\s*liya|le\s*gaya|le\s*gaye|credit\s*diya)\b/i.test(lower) ||
-    /(?:उधार|उधारी|खाता\s*लिखो|सामान\s*दिया|सामान\s*लिया|माल\s*दिया|उधार\s*दिया)/.test(lower);
+    /\b(udhaar|udhar|udhaar\s*liya|udhar\s*liya|baaki\s*liya|baki\s*liya|baaki\s*likho|khata\s*likho|maal\s*diya|samaan\s*diya|samaan\s*liya|le\s*gaya|le\s*gaye|credit\s*diya)\b/i.test(lower) ||
+    /(?:उधार|उधारी|उधार\s*लिया|बाकी\s*लिया|खाता\s*लिखो|सामान\s*दिया|सामान\s*लिया|माल\s*दिया|उधार\s*दिया)/.test(lower);
 
   // If both udhaar and jama are mentioned (e.g. "udhaar chukta kiya" or "udhaar jama kiya") -> It's a PAYMENT!
   if (hasPaymentKeyword || hasPaymentPattern) {

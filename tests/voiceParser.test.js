@@ -93,6 +93,34 @@ describe('voiceParser.js AI Voice Engine Tests (40+ Test Suite)', () => {
       expect(res.amount).toBe(600);
       expect(res.customerName).toBe('Deepak');
     });
+
+    it('12b. parses "Ravi ne 20 baaki liya" as credit', () => {
+      const res = parseVoiceInput('Ravi ne 20 baaki liya', mockCustomers);
+      expect(res.intent).toBe('credit');
+      expect(res.amount).toBe(20);
+      expect(res.customerName).toBe('Ravi');
+    });
+
+    it('12c. parses "रवि ने ₹20 बाकी लिया" as credit', () => {
+      const res = parseVoiceInput('रवि ने ₹20 बाकी लिया', mockCustomers);
+      expect(res.intent).toBe('credit');
+      expect(res.amount).toBe(20);
+      expect(res.customerName).toBe('Ravi');
+    });
+
+    it('12d. parses "Ramesh ne 500 udhaar liya" as credit', () => {
+      const res = parseVoiceInput('Ramesh ne 500 udhaar liya', mockCustomers);
+      expect(res.intent).toBe('credit');
+      expect(res.amount).toBe(500);
+      expect(res.customerName).toBe('Ramesh');
+    });
+
+    it('12e. parses "रमेश ने 500 उधार लिया" as credit', () => {
+      const res = parseVoiceInput('रमेश ने 500 उधार लिया', mockCustomers);
+      expect(res.intent).toBe('credit');
+      expect(res.amount).toBe(500);
+      expect(res.customerName).toBe('Ramesh');
+    });
   });
 
   describe('Payment Intent Commands (Hindi / Hinglish / English)', () => {

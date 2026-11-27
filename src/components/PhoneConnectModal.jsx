@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Mic
 } from 'lucide-react';
+import { generateQrSvgDataUrl } from '../utils/qrCode';
 
 export default function PhoneConnectModal({ isOpen, onClose }) {
   const [copiedLocal, setCopiedLocal] = useState(false);
@@ -28,7 +29,7 @@ export default function PhoneConnectModal({ isOpen, onClose }) {
   // Auto-build local Wi-Fi URL
   const localIpUrl = `${defaultProtocol}//${customIp || defaultHost}:${defaultPort}/`;
   const activeUrl = selectedMethod === 'wifi' ? localIpUrl : (customUrl || localIpUrl);
-  const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(activeUrl)}&bgcolor=ffffff&color=059669&margin=6`;
+  const qrCodeImageUrl = generateQrSvgDataUrl(activeUrl, { color: '#059669', background: '#ffffff' });
 
   // Early return ONLY AFTER all hooks are declared
   if (!isOpen) return null;
