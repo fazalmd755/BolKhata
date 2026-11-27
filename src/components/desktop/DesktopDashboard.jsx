@@ -253,7 +253,7 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
         <div className="mt-5 pt-4 border-t border-emerald-600/60 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <span className="text-[11px] font-bold text-emerald-200 shrink-0 flex items-center gap-1">
             <Zap className="w-3 h-3 text-amber-300 fill-amber-300" />
-            <span>सैंपल कमांड टेस्ट करें:</span>
+            <span>{language === 'en' ? 'Try sample commands:' : 'सैंपल कमांड टेस्ट करें:'}</span>
           </span>
           {DEMO_VOICE_COMMANDS.map((cmd, idx) => (
             <button
@@ -279,15 +279,17 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
                   <Receipt className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900">हाल के लेन-देन (Recent Transactions)</h3>
-                  <p className="text-xs text-slate-400">दुकान के नवीनतम जमा-उधार रिकॉर्ड</p>
+                  <h3 className="font-bold text-sm text-slate-900">{t('recent_transactions')}</h3>
+                  <p className="text-xs text-slate-400">
+                    {language === 'en' ? 'Latest credit & payment entries' : 'दुकान के नवीनतम जमा-उधार रिकॉर्ड'}
+                  </p>
                 </div>
               </div>
               <button
                 onClick={onGoToReports}
                 className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 transition"
               >
-                <span>पूरी डेबुक देखें</span>
+                <span>{language === 'en' ? 'View Full Daybook' : 'पूरी डेबुक देखें'}</span>
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
@@ -297,13 +299,13 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
               <table className="w-full text-left text-xs mt-2">
                 <thead>
                   <tr className="text-slate-400 font-bold border-b border-slate-100 text-[11px] uppercase tracking-wider">
-                    <th className="py-3 px-2">दिनांक (Date)</th>
-                    <th className="py-3 px-3">ग्राहक (Customer)</th>
-                    <th className="py-3 px-2">प्रकार (Type)</th>
-                    <th className="py-3 px-3">राशि (Amount)</th>
-                    <th className="py-3 px-2">सामान (Items)</th>
-                    <th className="py-3 px-2">माध्यम (Mode)</th>
-                    <th className="py-3 px-2 text-right">कार्रवाई (Action)</th>
+                    <th className="py-3 px-2">{language === 'en' ? 'Date' : 'दिनांक (Date)'}</th>
+                    <th className="py-3 px-3">{language === 'en' ? 'Customer' : 'ग्राहक (Customer)'}</th>
+                    <th className="py-3 px-2">{language === 'en' ? 'Type' : 'प्रकार (Type)'}</th>
+                    <th className="py-3 px-3">{language === 'en' ? 'Amount' : 'राशि (Amount)'}</th>
+                    <th className="py-3 px-2">{language === 'en' ? 'Items' : 'सामान (Items)'}</th>
+                    <th className="py-3 px-2">{language === 'en' ? 'Mode' : 'माध्यम (Mode)'}</th>
+                    <th className="py-3 px-2 text-right">{language === 'en' ? 'Action' : 'कार्रवाई (Action)'}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -328,7 +330,7 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
                               ? 'bg-red-50 text-red-700 border border-red-200' 
                               : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           }`}>
-                            {isCredit ? 'उधार' : 'जमा'}
+                            {isCredit ? (language === 'en' ? 'Udhaar' : 'उधार') : (language === 'en' ? 'Jama' : 'जमा')}
                           </span>
                         </td>
                         <td className="py-3 px-3 font-extrabold text-slate-900 whitespace-nowrap">
@@ -346,7 +348,7 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
                           <button
                             onClick={() => handleOpenCustomer(txn.customerId)}
                             className="p-1.5 rounded-lg bg-slate-100 hover:bg-emerald-100 text-slate-600 hover:text-emerald-700 transition"
-                            title="खाता बही खोलें"
+                            title={language === 'en' ? 'Open Ledger' : 'खाता बही खोलें'}
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                           </button>
@@ -360,12 +362,12 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
           </div>
 
           <div className="pt-3 border-t border-slate-100 text-xs text-slate-400 flex items-center justify-between">
-            <span>कुल {transactions.length} लेन-देन दर्ज हैं</span>
+            <span>{language === 'en' ? `Total ${transactions.length} transactions recorded` : `कुल ${transactions.length} लेन-देन दर्ज हैं`}</span>
             <button
               onClick={onGoToKhata}
               className="font-bold text-emerald-700 hover:underline"
             >
-              सभी ग्राहक देखें ➔
+              {language === 'en' ? 'View All Customers ➔' : 'सभी ग्राहक देखें ➔'}
             </button>
           </div>
         </div>
@@ -379,8 +381,10 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
                   <AlertTriangle className="w-4 h-4" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900">तकादा सूची (Overdue & Due)</h3>
-                  <p className="text-xs text-slate-400">अधिकतम बकाया वाले ग्राहक</p>
+                  <h3 className="font-bold text-sm text-slate-900">{t('top_debtors')}</h3>
+                  <p className="text-xs text-slate-400">
+                    {language === 'en' ? 'Highest pending balances' : 'अधिकतम बकाया वाले ग्राहक'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -423,13 +427,13 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
                         <span className="text-xs font-black text-red-600 block">
                           ₹{cust.balance.toLocaleString('en-IN')}
                         </span>
-                        <span className="text-[10px] text-slate-400">बाकी</span>
+                        <span className="text-[10px] text-slate-400">{t('remaining_short')}</span>
                       </div>
 
                       <button
                         onClick={(e) => handleSendReminder(cust, e)}
                         className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-2xs"
-                        title="WhatsApp तकादा भेजें"
+                        title={t('send_reminder')}
                       >
                         <MessageCircle className="w-3.5 h-3.5" />
                       </button>
@@ -445,7 +449,7 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
               onClick={onGoToKhata}
               className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition"
             >
-              सभी ग्राहक बही देखें (View All)
+              {t('view_all')}
             </button>
           </div>
         </div>

@@ -104,7 +104,7 @@ export default function DesktopTransactionsView() {
                 filterType === 'credit' ? 'bg-white text-red-600 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              उधार ({activeTxns.filter(t => t.type === 'credit').length})
+              {language === 'en' ? 'Udhaar' : 'उधार'} ({activeTxns.filter(t => t.type === 'credit').length})
             </button>
             <button
               onClick={() => setFilterType('payment')}
@@ -112,7 +112,7 @@ export default function DesktopTransactionsView() {
                 filterType === 'payment' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              जमा ({activeTxns.filter(t => t.type === 'payment').length})
+              {language === 'en' ? 'Jama' : 'जमा'} ({activeTxns.filter(t => t.type === 'payment').length})
             </button>
           </div>
 
@@ -123,7 +123,7 @@ export default function DesktopTransactionsView() {
             title="Download CSV"
           >
             <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-            <span>Excel Export</span>
+            <span>{t('export_csv')}</span>
           </button>
         </div>
       </div>
@@ -134,21 +134,21 @@ export default function DesktopTransactionsView() {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr className="text-slate-500 font-bold text-[11px] uppercase tracking-wider">
-                <th className="py-3.5 px-4">दिनांक (Date)</th>
-                <th className="py-3.5 px-4">ग्राहक (Customer)</th>
-                <th className="py-3.5 px-3">प्रकार (Type)</th>
-                <th className="py-3.5 px-4">राशि (Amount)</th>
-                <th className="py-3.5 px-4">सामान (Items)</th>
-                <th className="py-3.5 px-3">माध्यम (Mode)</th>
-                <th className="py-3.5 px-4">नोट्स / आवाज़ कमांड</th>
-                <th className="py-3.5 px-4 text-right">खाता बही (Ledger)</th>
+                <th className="py-3.5 px-4">{language === 'en' ? 'Date' : 'दिनांक (Date)'}</th>
+                <th className="py-3.5 px-4">{language === 'en' ? 'Customer' : 'ग्राहक (Customer)'}</th>
+                <th className="py-3.5 px-3">{language === 'en' ? 'Type' : 'प्रकार (Type)'}</th>
+                <th className="py-3.5 px-4">{language === 'en' ? 'Amount' : 'राशि (Amount)'}</th>
+                <th className="py-3.5 px-4">{language === 'en' ? 'Items' : 'सामान (Items)'}</th>
+                <th className="py-3.5 px-3">{language === 'en' ? 'Mode' : 'माध्यम (Mode)'}</th>
+                <th className="py-3.5 px-4">{language === 'en' ? 'Notes / Voice Command' : 'नोट्स / आवाज़ कमांड'}</th>
+                <th className="py-3.5 px-4 text-right">{language === 'en' ? 'Ledger' : 'खाता बही (Ledger)'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredTxns.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-slate-400 font-medium">
-                    कोई लेन-देन रिकॉर्ड नहीं मिला।
+                    {t('no_transactions_yet')}
                   </td>
                 </tr>
               ) : (
@@ -173,7 +173,7 @@ export default function DesktopTransactionsView() {
                             ? 'bg-red-50 text-red-700 border border-red-200' 
                             : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         }`}>
-                          {isCredit ? 'उधार (Credit)' : 'जमा (Payment)'}
+                          {isCredit ? t('credit_title') : t('payment_title')}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 font-black whitespace-nowrap text-sm">
@@ -199,7 +199,7 @@ export default function DesktopTransactionsView() {
                           onClick={() => handleOpenCustomer(txn.customerId)}
                           className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-emerald-100 text-slate-700 hover:text-emerald-800 text-xs font-bold transition inline-flex items-center gap-1"
                         >
-                          <span>बही देखें</span>
+                          <span>{language === 'en' ? 'View Ledger' : 'बही देखें'}</span>
                           <ExternalLink className="w-3 h-3" />
                         </button>
                       </td>

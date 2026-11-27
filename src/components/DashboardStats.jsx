@@ -130,8 +130,8 @@ export default function DashboardStats() {
           className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-sm transition shrink-0"
         >
           <PlusCircle className="w-4 h-4" />
-          <span className="hidden sm:inline">+ नई एंट्री</span>
-          <span className="sm:hidden">+ एंट्री</span>
+          <span className="hidden sm:inline">{t('add_entry_short')}</span>
+          <span className="sm:hidden">{t('add_entry_short')}</span>
         </button>
       </div>
 

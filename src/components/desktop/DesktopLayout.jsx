@@ -8,6 +8,7 @@ import ReportsView from '../ReportsView';
 import SettingsView from '../SettingsView';
 import { useKhata } from '../../context/KhataContext';
 import { Search, PlusCircle } from 'lucide-react';
+import { useTranslation } from '../../i18n';
 
 export default function DesktopLayout({ 
   activeTab, 
@@ -27,12 +28,13 @@ export default function DesktopLayout({
     setActiveModal, 
     setModalPayload 
   } = useKhata();
+  const { t } = useTranslation();
 
   const filters = [
-    { id: 'all', label: 'सभी ग्राहक (All)', count: customers.length },
-    { id: 'pending', label: 'बाकी उधार (Due)', count: activeCustomersCount },
-    { id: 'overdue', label: 'अतिदेय (Overdue)', count: overdueCustomers.length, highlight: true },
-    { id: 'cleared', label: 'चुकता (Clear)', count: customers.filter(c => c.balance <= 0).length },
+    { id: 'all', label: t('filter_all'), count: customers.length },
+    { id: 'pending', label: t('filter_pending'), count: activeCustomersCount },
+    { id: 'overdue', label: t('filter_overdue'), count: overdueCustomers.length, highlight: true },
+    { id: 'cleared', label: t('filter_cleared'), count: customers.filter(c => c.balance <= 0).length },
   ];
 
   const handleAddNewCustomer = () => {
@@ -107,7 +109,7 @@ export default function DesktopLayout({
                       type="text"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="ग्राहक खोजें..."
+                      placeholder={t('search')}
                       className="w-full pl-9 pr-7 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:bg-white transition"
                     />
                     {searchQuery && (
@@ -126,7 +128,7 @@ export default function DesktopLayout({
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shrink-0 transition"
                   >
                     <PlusCircle className="w-4 h-4" />
-                    <span>+ नया ग्राहक</span>
+                    <span>{t('new_customer_btn')}</span>
                   </button>
                 </div>
               </div>

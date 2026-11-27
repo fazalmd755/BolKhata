@@ -266,7 +266,7 @@ export default function SettingsView() {
               onClick={handleDisablePin}
               className="px-3 py-1 bg-red-50 text-red-600 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 transition"
             >
-              हटाएं (Turn Off)
+              {t('pin_disable_btn')}
             </button>
           ) : (
             <button
@@ -274,14 +274,16 @@ export default function SettingsView() {
               onClick={() => setIsSettingPin(true)}
               className="px-3 py-1 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700 transition"
             >
-              + पिन लगाएं (Set PIN)
+              {t('pin_enable_btn')}
             </button>
           )}
         </div>
 
         {isSettingPin && (
           <form onSubmit={handleSavePin} className="p-3 bg-purple-50/60 rounded-xl border border-purple-200 space-y-2">
-            <label className="block text-[11px] font-bold text-purple-900">नया 4 से 6 अंकों का पिन दर्ज करें</label>
+            <label className="block text-[11px] font-bold text-purple-900">
+              {language === 'en' ? 'Enter a new 4 to 6 digit PIN' : 'नया 4 से 6 अंकों का पिन दर्ज करें'}
+            </label>
             <div className="flex items-center gap-2">
               <input
                 type="password"
@@ -295,14 +297,14 @@ export default function SettingsView() {
                 type="submit"
                 className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold whitespace-nowrap"
               >
-                सेव करें
+                {t('save')}
               </button>
               <button
                 type="button"
                 onClick={() => setIsSettingPin(false)}
                 className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold"
               >
-                रद्द
+                {t('cancel')}
               </button>
             </div>
             {pinError && <p className="text-[11px] text-red-600 font-bold">{pinError}</p>}
@@ -319,12 +321,12 @@ export default function SettingsView() {
 
       {/* App Preferences */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
-        <h4 className="text-xs font-bold text-slate-700">ऐप प्राथमिकताएं (App Settings)</h4>
+        <h4 className="text-xs font-bold text-slate-700">{language === 'en' ? 'App Preferences' : 'ऐप प्राथमिकताएं (App Settings)'}</h4>
 
         <label className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-800">
             <Volume2 className="w-4 h-4 text-emerald-600" />
-            <span>ध्वनि प्रभाव (Sound Feedback)</span>
+            <span>{language === 'en' ? 'Sound Feedback' : 'ध्वनि प्रभाव (Sound Feedback)'}</span>
           </div>
           <input
             type="checkbox"
@@ -341,7 +343,7 @@ export default function SettingsView() {
         <label className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 border border-slate-100 cursor-pointer">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-800">
             <ShieldCheck className="w-4 h-4 text-emerald-600" />
-            <span>बोलकर हिसाब सुनाएं (Hindi Voice Readout)</span>
+            <span>{language === 'en' ? 'Voice Readout (Speak Balance)' : 'बोलकर हिसाब सुनाएं (Hindi Voice Readout)'}</span>
           </div>
           <input
             type="checkbox"
@@ -369,7 +371,11 @@ export default function SettingsView() {
               : 'text-emerald-700 bg-emerald-50 border border-emerald-200'
           }`}>
             <Clock className="w-3 h-3" />
-            <span>{language === 'en' ? `Last backup: ${backupStatus.lastBackupDaysAgo}` : `अंतिम बैकअप: ${backupStatus.lastBackupDaysAgo}`}</span>
+            <span>
+              {language === 'en'
+                ? `Last backup: ${backupStatus.daysSince === null || backupStatus.daysSince === undefined ? 'Never' : `${backupStatus.daysSince}d ago`}`
+                : `अंतिम बैकअप: ${backupStatus.lastBackupDaysAgo}`}
+            </span>
           </span>
         </div>
         <p className="text-[11px] text-slate-500">
@@ -458,7 +464,7 @@ export default function SettingsView() {
             className="w-full py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold flex items-center justify-center gap-1.5 transition"
           >
             <Trash2 className="w-3.5 h-3.5 text-red-600" />
-            <span>सारा डेटा साफ़ करें (Clear All / Fresh Start)</span>
+            <span>{t('clear_all_data')}</span>
           </button>
         </div>
       </div>

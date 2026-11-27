@@ -135,7 +135,7 @@ export default function DesktopHeader({ onOpenVoice, onOpenPhoneModal, onOpenAiA
           </div>
           <div className="hidden 2xl:block">
             <p className="text-xs font-bold text-slate-800 leading-tight">{shopSettings.merchantName}</p>
-            <p className="text-[10px] text-slate-400">Dukaandar</p>
+            <p className="text-[10px] text-slate-400">{isEnglish ? 'Shopkeeper' : 'Dukaandar'}</p>
           </div>
         </div>
       </div>

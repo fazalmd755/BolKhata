@@ -127,7 +127,7 @@ export default function CustomerCard({ customer }) {
               aria-label="WhatsApp Payment Reminder"
             >
               <MessageCircle className="w-3.5 h-3.5 fill-emerald-600/10" />
-              <span className="hidden sm:inline">तकादा</span>
+              <span className="hidden sm:inline">{t('send_reminder_short')}</span>
             </button>
           )}
 

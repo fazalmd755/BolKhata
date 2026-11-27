@@ -15,7 +15,7 @@ import { generateQrSvgDataUrl } from '../utils/qrCode';
 import { useTranslation } from '../i18n';
 
 export default function PhoneConnectModal({ isOpen, onClose }) {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const [copiedLocal, setCopiedLocal] = useState(false);
   const [copiedCustom, setCopiedCustom] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState('wifi'); // 'wifi' | 'custom'
@@ -149,7 +149,9 @@ export default function PhoneConnectModal({ isOpen, onClose }) {
                 </div>
               </div>
               <p className="text-[11px] text-slate-500 text-center">
-                👉 आपका फोन और कंप्यूटर एक ही वाई-फाई (Wi-Fi) से जुड़े होने चाहिए।
+                {language === 'en'
+                  ? '👉 Your phone and computer must be on the same Wi-Fi network.'
+                  : '👉 आपका फोन और कंप्यूटर एक ही वाई-फाई (Wi-Fi) से जुड़े होने चाहिए।'}
               </p>
             </div>
           ) : (
@@ -173,12 +175,18 @@ export default function PhoneConnectModal({ isOpen, onClose }) {
                   className="w-full bg-white px-2.5 py-1.5 rounded-lg border border-blue-300 text-xs font-mono font-semibold text-blue-900 focus:outline-none focus:border-blue-600"
                 />
                 <p className="text-[10px] text-blue-700 font-medium">
-                  URL पेस्ट करते ही ऊपर दिया गया QR कोड लाइव अपडेट हो जाएगा।
+                  {language === 'en'
+                    ? 'The QR code above updates live as you paste a URL.'
+                    : 'URL पेस्ट करते ही ऊपर दिया गया QR कोड लाइव अपडेट हो जाएगा।'}
                 </p>
               </div>
               <p className="text-[11px] text-slate-500 text-center flex items-center justify-center gap-1">
                 <Mic className="w-3.5 h-3.5 text-emerald-600 inline" />
-                <span>HTTPS लिंक पर मोबाइल का माइक्रोफ़ोन 100% काम करेगा।</span>
+                <span>
+                  {language === 'en'
+                    ? 'Mobile microphone works 100% over an HTTPS link.'
+                    : 'HTTPS लिंक पर मोबाइल का माइक्रोफ़ोन 100% काम करेगा।'}
+                </span>
               </p>
             </div>
           )}

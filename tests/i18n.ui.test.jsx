@@ -65,6 +65,10 @@ describe('Multi-Page UI Language Switching (Hinglish <-> English)', () => {
     expect(screen.getByText('All Transactions Ledger')).toBeTruthy();
     expect(screen.getByText('Open on Your Phone')).toBeTruthy();
 
+    // Ensure zero Devanagari leaks anywhere across all rendered pages in English mode
+    const renderedTextInEnglish = document.body.textContent || '';
+    expect(renderedTextInEnglish).not.toMatch(/[\u0900-\u097F]/);
+
     // 3. Switch back via SettingsView language <select> -> switches ALL pages back to Hinglish
     const langSelect = screen.getByDisplayValue('English');
     fireEvent.change(langSelect, { target: { value: 'hi' } });
