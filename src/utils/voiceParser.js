@@ -148,9 +148,11 @@ export function classifyIntent(text) {
     'upi', 'phonepe', 'gpay', 'google pay', 'paytm', 'bhim', 'scanner',
     'cash mila', 'nagad mila', 'cash diya', 'cash jama', 'nagad jama',
     'chukta', 'chukta kiya', 'vasool', 'vasooli', 'settle', 'settled', 'cleared', 'clear', 'vapis', 'lautaye',
+    'bakaya liya', 'pakaya liya', 'paisa liya', 'liya',
     // Devanagari payment keywords
     'जमा', 'जमा किए', 'जमा किया', 'जमा मिला', 'मिले', 'मिला', 'मिल गया', 'मिल गए', 'आए', 'आया', 'आ गए', 'आ गया',
-    'भुगतान', 'पेमेंट', 'पे', 'यूपीआई', 'फोनपे', 'गूगल पे', 'पेटीएम', 'नकद', 'कैश', 'चुकता', 'वसूल', 'वापस'
+    'भुगतान', 'पेमेंट', 'पे', 'यूपीआई', 'फोनपे', 'गूगल पे', 'पेटीएम', 'नकद', 'कैश', 'चुकता', 'वसूल', 'वापस',
+    'बकाया लिया', 'पकाया लिया', 'पैसा लिया', 'लिया'
   ];
 
   const hasPaymentKeyword = paymentWords.some(w => {

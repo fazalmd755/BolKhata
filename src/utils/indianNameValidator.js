@@ -189,23 +189,25 @@ export function cleanCustomerCandidateName(rawName) {
   if (!rawName) return '';
   let str = rawName.trim();
 
-  // Strip leading conversational phrases
+  // 1. Strip currency symbols, numbers, punctuation
+  str = str.replace(/[₹$€£¥\d\.,\/#!$%\^&\*;:{}=\-_`~()\[\]<>?|\\+]/g, ' ').trim();
+
+  // 2. Strip leading conversational phrases & action words
   str = str.replace(/^(?:naya\s+grahak|naye\s+grahak|naya\s+customer|naye\s+customer|naya\s+khata|new\s+customer|add\s+customer|नया\s*ग्राहक|नए\s*ग्राहक|नया\s*कस्टमर|नया\s*खाता|ग्राहक|कस्टमर)\s+/gi, '');
   str = str.replace(/^(?:arre|suno|sun|bhai|hello|likho|likh\s*do|entry|entry\s*karo|dokan|dukaan|khata|khate\s*me)\s+/gi, '');
-  // Strip leading action / transaction keywords
   str = str.replace(/^(?:udhar|udhaar|jama|diya|diye|mila|mile|bheja|lena|dena|likho|rupaye|rs|cash|payment|credit|उधार|जमा|दिया|दिए|मिला|मिले|रुपये|रुपए|रुपया|कैश)\s+/gi, '');
 
-  // Strip trailing role and marker words (repeat 2 times to handle compounds like "grahak ko" or "bhai ji")
-  for (let pass = 0; pass < 2; pass++) {
-    str = str.replace(/\s+(?:grahak|customer|cust|khata|entry|bhai|bhaiya|ji|seth|chacha|uncle|aunty|sahab|saheb|babu|sir|number|phone|mobile|ko|ne|se|ka|ke|ki|to|from)$/gi, '');
-    str = str.replace(/\s+(?:ग्राहक|कस्टमर|खाता|दुकान|भाई|भैया|जी|साहब|बाबू|अंकल|आंटी|सेठ|चाचा|नंबर|फोन|मोबाइल|को|ने|से|का|के|की)$/gi, '');
-    str = str.replace(/\s+(?:udhar|udhaar|diya|diye|jama|mila|mile|bheja|lena|dena|likho|rupaye|rs|cash|payment|credit|उधार|जमा|दिया|दिए|मिला|मिले|रुपये|रुपए|रुपया|कैश)$/gi, '');
+  // 3. Strip trailing grammatical particles, markers, currency words, and role words (repeat 3 times to peel chained suffixes like "में ₹" or "का बकाया")
+  const TRAILING_PATTERN = /\s+(?:grahak|customer|cust|khata|entry|bhai|bhaiya|ji|seth|chacha|uncle|aunty|sahab|saheb|babu|sir|number|phone|mobile|ko|ne|se|ka|ke|ki|me|mein|pe|par|to|from|in|on|at|for|wala|wali|baki|baaki|bakaya|pakaya|pabaya|rupaye|rs|paise|cash|payment|credit|udhar|udhaar|diya|diye|liya|liye|le|de|lena|dena|mila|mile|bheja|ग्राहक|कस्टमर|खाता|दुकान|भाई|भैया|जी|साहब|बाबू|अंकल|आंटी|सेठ|चाचा|नंबर|फोन|मोबाइल|को|ने|से|का|के|की|में|पे|पर|वाला|वाली|बाकी|बकाया|पकाया|उधार|जमा|दिया|दिए|लिया|लिए|ले|दे|रुपये|रुपए|रुपया|कैश)$/gi;
+
+  for (let pass = 0; pass < 3; pass++) {
+    str = str.trim().replace(TRAILING_PATTERN, '').trim();
   }
 
-  // Also strip if word is placed at start: e.g. "grahak Aslam" -> "Aslam"
-  str = str.replace(/^(?:grahak|customer|ग्राहक|कस्टमर)\s+/gi, '');
+  // 4. Strip if grammar postposition or role word is placed at start
+  str = str.replace(/^(?:grahak|customer|ग्राहक|कस्टमर|में|ने|से|को|का|के|की|pe|par|me|mein)\s+/gi, '');
 
-  return str.trim();
+  return str.replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -280,7 +282,22 @@ export function validateAndEnhanceIndianName(candidate, knownCustomers = []) {
     }
 
     // Check multi-word Devanagari compound (e.g. "असलम खान")
-    const devWords = cleaned.split(/\s+/).filter(Boolean);
+    const JUNK_DEV_PARTICLES = new Set([
+      'में', 'ने', 'से', 'को', 'का', 'के', 'की', 'पे', 'पर', 'वाला', 'वाली',
+      'बाकी', 'बकाया', 'पकाया', 'पबाया', 'लिया', 'दिया', 'दिए', 'रुपये', 'रुपए', 'रुपया', '₹', 'रू'
+    ]);
+    const devWords = cleaned.split(/\s+/).filter(Boolean).filter(w => !JUNK_DEV_PARTICLES.has(w));
+    if (devWords.length === 0) {
+      return {
+        isValid: false,
+        cleanName: 'Customer',
+        confidence: 0,
+        isKnownCustomer: false,
+        isIndianNameMatch: false,
+        reasoning: 'अमान्य नाम'
+      };
+    }
+
     const mappedWords = devWords.map(w => DEVANAGARI_NAME_DICTIONARY[w] || w);
     const hasAnyDevMap = devWords.some(w => Boolean(DEVANAGARI_NAME_DICTIONARY[w]));
 
@@ -289,7 +306,7 @@ export function validateAndEnhanceIndianName(candidate, knownCustomers = []) {
       return {
         isValid: true,
         cleanName: formatted,
-        devanagariOriginal: cleaned,
+        devanagariOriginal: devWords.join(' '),
         confidence: 0.92,
         isKnownCustomer: false,
         isIndianNameMatch: true,
@@ -297,15 +314,15 @@ export function validateAndEnhanceIndianName(candidate, knownCustomers = []) {
       };
     }
 
-    // Even if not in dictionary, if it's 2-4 Devanagari words and not junk, accept with proper title case
+    // Even if not in dictionary, if it's 1-3 Devanagari words and not junk, accept with proper title case
     if (devWords.length >= 1 && devWords.length <= 3) {
       return {
         isValid: true,
-        cleanName: cleaned,
+        cleanName: devWords.join(' '),
         confidence: 0.85,
         isKnownCustomer: false,
         isIndianNameMatch: true,
-        reasoning: 'भारतीय क्षेत्रीय नाम (Regional Name)'
+        reasoning: 'प्रमाणित भारतीय नाम'
       };
     }
   }

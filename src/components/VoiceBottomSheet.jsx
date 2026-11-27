@@ -620,13 +620,8 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
                   {liveParsedPreview.typeLabel}
                 </span>
                 {liveParsedPreview.customerName && (
-                  <span className="text-slate-700 flex items-center gap-1.5">
-                    <span>👤 <b>{liveParsedPreview.customerName}</b></span>
-                    {liveParsedPreview.isIndianNameMatch && (
-                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-1 py-0.2 rounded border border-emerald-200">
-                        ✓ AI भारतीय नाम
-                      </span>
-                    )}
+                  <span className="text-slate-700">
+                    👤 <b>{liveParsedPreview.customerName}</b>
                   </span>
                 )}
                 {liveParsedPreview.amount > 0 && (
