@@ -29,18 +29,14 @@ export default function ManualEntryModal() {
     addNewCustomer 
   } = useKhata();
 
-  if (activeModal !== 'manual_entry') return null;
-
   const defaultCust = customers.find(c => c.id === selectedCustomerId) || customers[0] || null;
 
   // Active sub-mode: 'transaction' | 'new_customer'
-  const [mode, setMode] = useState(
-    modalPayload?.defaultTab === 'new_customer' ? 'new_customer' : 'transaction'
-  );
+  const [mode, setMode] = useState('transaction');
 
   // Transaction form state
-  const [selectedCustId, setSelectedCustId] = useState(defaultCust ? defaultCust.id : '');
-  const [customerName, setCustomerName] = useState(defaultCust ? defaultCust.name : '');
+  const [selectedCustId, setSelectedCustId] = useState('');
+  const [customerName, setCustomerName] = useState('');
   const [type, setType] = useState('credit');
   const [amount, setAmount] = useState('');
   const [itemsString, setItemsString] = useState('');
@@ -49,22 +45,31 @@ export default function ManualEntryModal() {
   const [notes, setNotes] = useState('');
 
   // New customer form state
-  const [newCustName, setNewCustName] = useState(modalPayload?.prefillName || '');
-  const [newCustPhone, setNewCustPhone] = useState(modalPayload?.prefillPhone || '');
+  const [newCustName, setNewCustName] = useState('');
+  const [newCustPhone, setNewCustPhone] = useState('');
   const [newCustAddress, setNewCustAddress] = useState('');
   const [newCustOpeningBal, setNewCustOpeningBal] = useState('');
   const [newCustNotes, setNewCustNotes] = useState('');
 
   // Sync when modal opens or payload changes
   useEffect(() => {
-    if (modalPayload?.defaultTab === 'new_customer') {
-      setMode('new_customer');
-      if (modalPayload.prefillName) setNewCustName(modalPayload.prefillName);
-      if (modalPayload.prefillPhone) setNewCustPhone(modalPayload.prefillPhone);
-    } else {
-      setMode('transaction');
+    if (activeModal === 'manual_entry') {
+      if (modalPayload?.defaultTab === 'new_customer') {
+        setMode('new_customer');
+        setNewCustName(modalPayload.prefillName || '');
+        setNewCustPhone(modalPayload.prefillPhone || '');
+      } else {
+        setMode('transaction');
+        if (defaultCust) {
+          setSelectedCustId(defaultCust.id);
+          setCustomerName(defaultCust.name);
+        }
+      }
     }
-  }, [modalPayload]);
+  }, [modalPayload, activeModal, defaultCust]);
+
+  // Early return ONLY AFTER all Hooks are declared
+  if (activeModal !== 'manual_entry') return null;
 
   const handleSelectCustomer = (e) => {
     const cid = e.target.value;

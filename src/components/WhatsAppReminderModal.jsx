@@ -26,29 +26,34 @@ export default function WhatsAppReminderModal() {
 
   const customer = modalPayload?.customer || selectedCustomer;
 
-  if (activeModal !== 'whatsapp_reminder' || !customer) return null;
-
   const [selectedTemplateId, setSelectedTemplateId] = useState('friendly');
-  const [phone, setPhone] = useState(customer.phone || '');
+  const [phone, setPhone] = useState('');
   const [customMessage, setCustomMessage] = useState('');
   const [copied, setCopied] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  const amount = customer.balance;
-  const dueDateStr = customer.dueDate ? formatDisplayDate(customer.dueDate) : '';
-
   // Regenerate message when template or customer changes
   useEffect(() => {
-    const tpl = REMINDER_TEMPLATES.find(t => t.id === selectedTemplateId) || REMINDER_TEMPLATES[0];
-    const generated = tpl.generate({
-      customerName: customer.name,
-      amount,
-      shopName: shopSettings.shopName,
-      upiId: shopSettings.upiId,
-      dueDate: dueDateStr
-    });
-    setCustomMessage(generated);
-  }, [selectedTemplateId, customer, shopSettings]);
+    if (customer && activeModal === 'whatsapp_reminder') {
+      setPhone(customer.phone || '');
+      const tpl = REMINDER_TEMPLATES.find(t => t.id === selectedTemplateId) || REMINDER_TEMPLATES[0];
+      const dueDateStr = customer.dueDate ? formatDisplayDate(customer.dueDate) : '';
+      const generated = tpl.generate({
+        customerName: customer.name,
+        amount: customer.balance || 0,
+        shopName: shopSettings.shopName,
+        upiId: shopSettings.upiId,
+        dueDate: dueDateStr
+      });
+      setCustomMessage(generated);
+    }
+  }, [selectedTemplateId, customer, shopSettings, activeModal]);
+
+  // Early return ONLY AFTER all hooks are declared
+  if (activeModal !== 'whatsapp_reminder' || !customer) return null;
+
+  const amount = customer.balance;
+  const dueDateStr = customer.dueDate ? formatDisplayDate(customer.dueDate) : '';
 
   const upiLink = generateUpiLink({
     upiId: shopSettings.upiId,

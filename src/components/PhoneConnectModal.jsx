@@ -13,8 +13,6 @@ import {
 } from 'lucide-react';
 
 export default function PhoneConnectModal({ isOpen, onClose }) {
-  if (!isOpen) return null;
-
   const [copiedLocal, setCopiedLocal] = useState(false);
   const [copiedCustom, setCopiedCustom] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState('wifi'); // 'wifi' | 'custom'
@@ -31,6 +29,9 @@ export default function PhoneConnectModal({ isOpen, onClose }) {
   const localIpUrl = `${defaultProtocol}//${customIp || defaultHost}:${defaultPort}/`;
   const activeUrl = selectedMethod === 'wifi' ? localIpUrl : (customUrl || localIpUrl);
   const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(activeUrl)}&bgcolor=ffffff&color=059669&margin=6`;
+
+  // Early return ONLY AFTER all hooks are declared
+  if (!isOpen) return null;
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);

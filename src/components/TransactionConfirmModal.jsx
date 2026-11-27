@@ -26,29 +26,23 @@ export default function TransactionConfirmModal() {
     customers 
   } = useKhata();
 
-  if (activeModal !== 'confirm' || !modalPayload) return null;
-
-  const [customerName, setCustomerName] = useState(modalPayload.customerName || '');
-  const [phone, setPhone] = useState(modalPayload.customer ? modalPayload.customer.phone : '');
-  const [amount, setAmount] = useState(modalPayload.amount || '');
-  const [type, setType] = useState(modalPayload.type || 'credit'); // 'credit' | 'payment'
-  const [itemsString, setItemsString] = useState(
-    Array.isArray(modalPayload.items) ? modalPayload.items.join(', ') : (modalPayload.itemsString || '')
-  );
-  const [paymentMethod, setPaymentMethod] = useState(modalPayload.paymentMethod || 'Cash');
-  const [dueDate, setDueDate] = useState(modalPayload.dueDate || '');
-  const [notes, setNotes] = useState(modalPayload.notes || '');
+  // All Hooks MUST be declared unconditionally at the top of the component
+  const [customerName, setCustomerName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [amount, setAmount] = useState('');
+  const [type, setType] = useState('credit'); // 'credit' | 'payment'
+  const [itemsString, setItemsString] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const [dueDate, setDueDate] = useState('');
+  const [notes, setNotes] = useState('');
   const [ignoreDuplicateWarning, setIgnoreDuplicateWarning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isNewCustomer = modalPayload.isNewCustomer;
-  const isDuplicate = modalPayload.isDuplicate && !ignoreDuplicateWarning;
-
   // Sync state whenever modalPayload changes (fixes stuck 'credit' bug!)
   useEffect(() => {
-    if (modalPayload) {
+    if (modalPayload && activeModal === 'confirm') {
       setCustomerName(modalPayload.customerName || '');
-      setPhone(modalPayload.customer ? modalPayload.customer.phone : '');
+      setPhone(modalPayload.customer ? modalPayload.customer.phone : (modalPayload.phone || ''));
       setAmount(modalPayload.amount || '');
       setType(modalPayload.type || 'credit');
       setItemsString(
@@ -59,7 +53,13 @@ export default function TransactionConfirmModal() {
       setNotes(modalPayload.notes || '');
       setIgnoreDuplicateWarning(false);
     }
-  }, [modalPayload]);
+  }, [modalPayload, activeModal]);
+
+  // Early return ONLY AFTER all Hooks are called
+  if (activeModal !== 'confirm' || !modalPayload) return null;
+
+  const isNewCustomer = Boolean(modalPayload.isNewCustomer);
+  const isDuplicate = Boolean(modalPayload.isDuplicate) && !ignoreDuplicateWarning;
 
   const handleConfirm = (e) => {
     e.preventDefault();
