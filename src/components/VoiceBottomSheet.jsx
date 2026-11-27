@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Zap,
   ArrowUpRight,
+  ArrowDownLeft,
   Smartphone,
   HelpCircle,
   ShoppingBag,
@@ -650,6 +651,72 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
               </span>
             </div>
           )}
+
+          {/* Speaking Hints Guide (उधार दिया vs जमा मिला) */}
+          <div className="w-full mt-4 pt-3 border-t border-emerald-200/70 max-w-md">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
+                <span>बोलने का तरीका (ऐसे बोलें):</span>
+              </span>
+              <span className="text-[10px] text-emerald-700 font-semibold bg-emerald-100/80 px-2 py-0.5 rounded-full">
+                सहायता गाइड
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
+              {/* Hint 1: उधार दिया (Credit Given) */}
+              <div 
+                onClick={() => {
+                  if (!isListening) processCommand('रमेश को 500 रुपये उधार दिया');
+                }}
+                className="p-2.5 rounded-xl bg-red-50/80 border border-red-200 hover:bg-red-100/70 transition cursor-pointer active:scale-98"
+                title="क्लिक करके टेस्ट करें"
+              >
+                <div className="flex items-center justify-between text-[11px] font-bold text-red-700 mb-1">
+                  <span className="flex items-center gap-1">
+                    <ArrowUpRight className="w-3.5 h-3.5 text-red-600" />
+                    <span>उधार दिया (Credit)</span>
+                  </span>
+                  <span className="text-[9px] text-red-500 font-medium">सामान दिया</span>
+                </div>
+                <p className="text-[11px] font-semibold text-slate-800 leading-snug">
+                  🗣️ &ldquo;<b>रमेश को 500</b> रुपये <b>उधार दिया</b>&rdquo;
+                </p>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  या: &ldquo;सुरेश 450 का तेल और चीनी&rdquo;
+                </p>
+              </div>
+
+              {/* Hint 2: जमा मिला (Payment Got) */}
+              <div 
+                onClick={() => {
+                  if (!isListening) processCommand('रमेश से 500 रुपये जमा मिला');
+                }}
+                className="p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200 hover:bg-emerald-100/70 transition cursor-pointer active:scale-98"
+                title="क्लिक करके टेस्ट करें"
+              >
+                <div className="flex items-center justify-between text-[11px] font-bold text-emerald-800 mb-1">
+                  <span className="flex items-center gap-1">
+                    <ArrowDownLeft className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>जमा मिला (Payment)</span>
+                  </span>
+                  <span className="text-[9px] text-emerald-600 font-medium">पैसे मिले</span>
+                </div>
+                <p className="text-[11px] font-semibold text-slate-800 leading-snug">
+                  🗣️ &ldquo;<b>रमेश से 500</b> रुपये <b>जमा मिला</b>&rdquo;
+                </p>
+                <p className="text-[10px] text-slate-500 mt-0.5">
+                  या: &ldquo;मोहन ने 1200 ऑनलाइन दिए&rdquo;
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Rule Hint */}
+            <div className="mt-2 text-center text-[10px] text-slate-500 font-medium">
+              💡 <span className="text-slate-700 font-bold">आसान फॉर्मूला:</span> [ग्राहक का नाम] + [रुपये] + [&ldquo;उधार दिया&rdquo; या &ldquo;जमा मिला&rdquo;]
+            </div>
+          </div>
         </div>
 
         {/* Error message / Permission Guide */}
