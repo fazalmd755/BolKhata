@@ -216,43 +216,64 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
           </button>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs">
-          {recentTxns.map(t => {
-            const isCredit = t.type === 'credit';
-            return (
-              <div 
-                key={t.id}
-                onClick={() => handleOpenCustomer(t.customerId)}
-                className="p-3 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition"
+        {recentTxns.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center space-y-3 shadow-2xs">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <Mic className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-slate-800">अभी तक कोई लेन-देन दर्ज नहीं है</h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">माइक दबाकर बोलें या नया ग्राहक जोड़ें</p>
+            </div>
+            <div className="flex items-center justify-center gap-2 pt-1">
+              <button
+                onClick={onOpenVoice}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`p-1.5 rounded-xl shrink-0 ${
-                    isCredit ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'
-                  }`}>
-                    {isCredit ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownLeft className="w-4 h-4" />}
+                <Mic className="w-3.5 h-3.5" />
+                <span>बोलकर पहली एंट्री करें</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs">
+            {recentTxns.map(t => {
+              const isCredit = t.type === 'credit';
+              return (
+                <div 
+                  key={t.id}
+                  onClick={() => handleOpenCustomer(t.customerId)}
+                  className="p-3 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`p-1.5 rounded-xl shrink-0 ${
+                      isCredit ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'
+                    }`}>
+                      {isCredit ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownLeft className="w-4 h-4" />}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-xs text-slate-800 truncate">{t.customerName}</h4>
+                      <p className="text-[10px] text-slate-400">
+                        {formatRelativeTime(t.date)} • {t.paymentMethod || 'Khata'}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h4 className="font-bold text-xs text-slate-800 truncate">{t.customerName}</h4>
-                    <p className="text-[10px] text-slate-400">
-                      {formatRelativeTime(t.date)} • {t.paymentMethod || 'Khata'}
-                    </p>
-                  </div>
-                </div>
 
-                <div className="text-right shrink-0">
-                  <div className={`text-sm font-black ${
-                    isCredit ? 'text-red-600' : 'text-emerald-600'
-                  }`}>
-                    {isCredit ? '+' : '-'} ₹{Number(t.amount).toLocaleString('en-IN')}
+                  <div className="text-right shrink-0">
+                    <div className={`text-sm font-black ${
+                      isCredit ? 'text-red-600' : 'text-emerald-600'
+                    }`}>
+                      {isCredit ? '+' : '-'} ₹{Number(t.amount).toLocaleString('en-IN')}
+                    </div>
+                    <span className="text-[9px] font-semibold text-slate-400">
+                      {isCredit ? 'उधार' : 'जमा'}
+                    </span>
                   </div>
-                  <span className="text-[9px] font-semibold text-slate-400">
-                    {isCredit ? 'उधार' : 'जमा'}
-                  </span>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

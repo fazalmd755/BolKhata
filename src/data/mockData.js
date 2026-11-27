@@ -2,6 +2,18 @@
 // Designed specifically for Indian Kirana shopkeepers
 
 export const DEFAULT_SHOP_SETTINGS = {
+  shopName: '',
+  merchantName: '',
+  phone: '',
+  upiId: '',
+  language: 'hi-IN',
+  soundEnabled: true,
+  voiceReadoutEnabled: true,
+  currency: '₹',
+  onboardingCompleted: false
+};
+
+export const DEMO_SHOP_SETTINGS = {
   shopName: 'Gupta Kirana Store',
   merchantName: 'Rakesh Gupta',
   phone: '9811234567',
@@ -10,6 +22,7 @@ export const DEFAULT_SHOP_SETTINGS = {
   soundEnabled: true,
   voiceReadoutEnabled: true,
   currency: '₹',
+  onboardingCompleted: true
 };
 
 export const INITIAL_CUSTOMERS = [

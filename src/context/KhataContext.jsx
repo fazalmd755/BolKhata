@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { INITIAL_CUSTOMERS, INITIAL_TRANSACTIONS, DEFAULT_SHOP_SETTINGS } from '../data/mockData';
+import { INITIAL_CUSTOMERS, INITIAL_TRANSACTIONS, DEFAULT_SHOP_SETTINGS, DEMO_SHOP_SETTINGS } from '../data/mockData';
 import { toLocalDateKey, isOverdue } from '../utils/dateUtils';
 import { playSuccessChime } from '../utils/soundEffects';
 import { parseRupees, isValidAmount } from '../utils/money';
 import { generateId } from '../utils/idUtils';
 import { loadAtomicStore, saveAtomicStore, createDataSnapshot, requestPersistentStorage } from '../utils/storage';
 import { validateBackupSchema } from '../utils/backupValidation';
+import { recordDailySnapshot } from '../utils/backupService';
 
 const KhataContext = createContext();
 
@@ -85,9 +86,14 @@ export function KhataProvider({ children }) {
     requestPersistentStorage();
   }, []);
 
-  // Atomic storage persistence on state change (A9)
+  // Atomic storage persistence on state change (A9, C5)
   useEffect(() => {
     saveAtomicStore({
+      customers,
+      transactions,
+      shopSettings
+    });
+    recordDailySnapshot({
       customers,
       transactions,
       shopSettings
@@ -476,7 +482,7 @@ export function KhataProvider({ children }) {
       return rest;
     }));
     setTransactions(INITIAL_TRANSACTIONS);
-    setShopSettings(DEFAULT_SHOP_SETTINGS);
+    setShopSettings(DEMO_SHOP_SETTINGS);
   }, [customers, transactions, shopSettings]);
 
   /**

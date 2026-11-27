@@ -16,6 +16,8 @@ import ManualEntryModal from './components/ManualEntryModal';
 import CustomerLedgerModal from './components/CustomerLedgerModal';
 import WhatsAppReminderModal from './components/WhatsAppReminderModal';
 import UndoToast from './components/UndoToast';
+import OnboardingModal from './components/OnboardingModal';
+import PinLockModal from './components/PinLockModal';
 import { Search, PlusCircle } from 'lucide-react';
 
 function AppLayout() {
@@ -184,6 +186,8 @@ function AppLayout() {
       <ManualEntryModal />
       <CustomerLedgerModal />
       <WhatsAppReminderModal />
+      <OnboardingModal />
+      <PinLockModal />
       <UndoToast
         undoAction={undoAction}
         onUndo={undoLastAction}

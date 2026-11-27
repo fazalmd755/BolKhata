@@ -361,15 +361,15 @@ export function speakViaWebSpeech(text, preferredLang = 'hi-IN') {
 }
 
 /**
- * Master Text-to-speech engine:
- * 1. Checks Native Android TTS bridge (when running in Android Studio / Capacitor APK)
- * 2. Tries High-Quality Google Female Voice stream (with 1.5s strict timeout so it never hangs)
- * 3. Fallbacks to Web Speech API with automatic transliteration for Windows/Mac English voices
+ * Master Text-to-speech engine (C6: 100% offline-capable, local SpeechSynthesis):
+ * 1. Native Android TTS bridge if available
+ * 2. Local device voice synthesis (SpeechSynthesis)
+ * 3. Falls back to audio tones if speech synthesis is unavailable or offline
  */
 export async function speakText(text, preferredLang = 'hi-IN') {
   if (!text || typeof window === 'undefined') return;
 
-  // 1. Android Native App Support: If running inside Android Capacitor APK with native TextToSpeech bridge
+  // 1. Android Native App Support
   if (window.AndroidTTS && typeof window.AndroidTTS.speak === 'function') {
     try {
       window.AndroidTTS.speak(text);
@@ -379,18 +379,10 @@ export async function speakText(text, preferredLang = 'hi-IN') {
     }
   }
 
-  // 2. Try High-Quality Google Indian Female Voice stream (with 1.5s timeout)
-  try {
-    const ttsPromise = playOnlineTts(text, 'hi');
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('TTS network timeout')), 1500)
-    );
-    const ok = await Promise.race([ttsPromise, timeoutPromise]);
-    if (ok) return;
-  } catch (err) {
-    console.debug('Online TTS unavailable or timed out, falling back to Web Speech API');
+  // 2. Local Device Voice Synthesis (Zero external network dependencies)
+  const spoken = speakViaWebSpeech(text, preferredLang);
+  if (!spoken) {
+    // 3. Pleasant chime fallback if audio synthesis is unavailable
+    playSuccessChime();
   }
-
-  // 3. Fallback to Web Speech API
-  speakViaWebSpeech(text, preferredLang);
 }

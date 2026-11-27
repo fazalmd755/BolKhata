@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Store, 
   User, 
@@ -15,63 +15,62 @@ import {
   Download,
   Upload,
   Database,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Lock,
+  Unlock,
+  KeyRound,
+  AlertTriangle,
+  Clock,
+  Wifi,
+  WifiOff
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
 import { toLocalDateKey } from '../utils/dateUtils';
 import { parseRupees } from '../utils/money';
+import { isValidUpiId } from '../utils/whatsapp';
+import { getPinConfig, setupAppPin, disableAppPin } from '../utils/pinAuth';
+import { getBackupStatus, exportCsvLedger, exportJsonBackup } from '../utils/backupService';
 
 export default function SettingsView() {
   const { customers, transactions, shopSettings, setShopSettings, resetToDemoData, restoreBackupData } = useKhata();
   const [formData, setFormData] = useState({ ...shopSettings });
   const [saved, setSaved] = useState(false);
+  const [upiError, setUpiError] = useState('');
+
+  // PIN security states
+  const [pinConfig, setPinConfig] = useState(getPinConfig());
+  const [isSettingPin, setIsSettingPin] = useState(false);
+  const [newPin, setNewPin] = useState('');
+  const [pinError, setPinError] = useState('');
+  const [pinSuccess, setPinSuccess] = useState('');
+
+  // Backup status
+  const [backupStatus, setBackupStatus] = useState(getBackupStatus());
+
+  useEffect(() => {
+    setBackupStatus(getBackupStatus());
+    setPinConfig(getPinConfig());
+  }, [customers, transactions]);
 
   const handleSave = (e) => {
     e.preventDefault();
+    if (formData.upiId && !isValidUpiId(formData.upiId)) {
+      setUpiError('अमान्य UPI ID प्रारूप (उदा: yourname@upi)');
+      return;
+    }
+    setUpiError('');
     setShopSettings(formData);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
   const handleDownloadJsonBackup = () => {
-    const backup = {
-      schemaVersion: 2,
-      appName: 'BolKhata',
-      exportDate: new Date().toISOString(),
-      shopSettings,
-      customers,
-      transactions
-    };
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `bolkhata-backup-${toLocalDateKey(new Date())}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    exportJsonBackup({ customers, transactions, shopSettings }, formData.shopName || 'BolKhata');
+    setBackupStatus(getBackupStatus());
   };
 
   const handleDownloadCsvLedger = () => {
-    const headers = ['Txn_ID', 'Date', 'Customer_Name', 'Type', 'Amount_INR', 'Items', 'Payment_Method', 'Notes'];
-    const activeTxns = transactions.filter(t => !t.deletedAt);
-    const rows = activeTxns.map(t => [
-      `"${t.id}"`,
-      `"${toLocalDateKey(t.date)}"`,
-      `"${(t.customerName || '').replace(/"/g, '""')}"`,
-      `"${t.type}"`,
-      parseRupees(t.amount),
-      `"${(Array.isArray(t.items) ? t.items.join('; ') : '').replace(/"/g, '""')}"`,
-      `"${t.paymentMethod || 'Cash'}"`,
-      `"${(t.notes || '').replace(/"/g, '""')}"`
-    ]);
-    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `bolkhata-ledger-${toLocalDateKey(new Date())}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    exportCsvLedger(transactions, formData.shopName || 'BolKhata');
   };
 
   const handleFileUpload = (e) => {
@@ -81,13 +80,10 @@ export default function SettingsView() {
     reader.onload = (event) => {
       try {
         const parsed = JSON.parse(event.target.result);
-        if (!parsed.customers || !parsed.transactions) {
-          alert('अमान्य बैकअप फ़ाइल (Invalid backup format). Please provide a valid BolKhata JSON file.');
-          return;
-        }
         const res = restoreBackupData(parsed);
         if (res.success) {
-          alert(`बैकअप सफलतापूर्वक रीस्टोर हुआ! (${parsed.customers.length} ग्राहक, ${parsed.transactions.length} लेन-देन)`);
+          alert(`बैकअप सफलतापूर्वक रीस्टोर हुआ! (${res.customerCount} ग्राहक, ${res.transactionCount} लेन-देन)`);
+          setBackupStatus(getBackupStatus());
         } else {
           alert('रीस्टोर विफल: ' + res.error);
         }
@@ -99,10 +95,39 @@ export default function SettingsView() {
     e.target.value = '';
   };
 
-  const handleReset = () => {
-    if (window.confirm('Reset all demo data back to default Indian Kirana store?')) {
+  const handleLoadDemoData = () => {
+    const confirmMsg = 'क्या आप डेमो किराना डेटा लोड करना चाहते हैं? वर्तमान डेटा का एक सुरक्षा बैकअप स्वचालित रूप से सुरक्षित किया जाएगा।';
+    if (window.confirm(confirmMsg)) {
       resetToDemoData();
-      alert('Demo data restored successfully!');
+      alert('डेमो डेटा सफलतापूर्वक लोड हो गया!');
+      setBackupStatus(getBackupStatus());
+    }
+  };
+
+  const handleSavePin = async (e) => {
+    e.preventDefault();
+    setPinError('');
+    setPinSuccess('');
+    if (newPin.length < 4 || newPin.length > 6) {
+      setPinError('पिन 4 से 6 अंकों का होना चाहिए');
+      return;
+    }
+    const res = await setupAppPin(newPin);
+    if (res.success) {
+      setPinSuccess('ऐप लॉक सफलतापूर्वक सक्रिय हो गया!');
+      setIsSettingPin(false);
+      setNewPin('');
+      setPinConfig(getPinConfig());
+    } else {
+      setPinError(res.error || 'पिन सेट करने में त्रुटि हुई');
+    }
+  };
+
+  const handleDisablePin = () => {
+    if (window.confirm('क्या आप वाकई ऐप लॉक हटाना चाहते हैं?')) {
+      disableAppPin();
+      setPinConfig(getPinConfig());
+      setPinSuccess('ऐप लॉक निष्क्रिय कर दिया गया');
     }
   };
 
@@ -151,9 +176,27 @@ export default function SettingsView() {
           <input
             type="text"
             value={formData.upiId}
-            onChange={(e) => setFormData({ ...formData, upiId: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, upiId: e.target.value });
+              if (e.target.value && !isValidUpiId(e.target.value)) {
+                setUpiError('अमान्य UPI ID प्रारूप (उदा: yourname@upi)');
+              } else {
+                setUpiError('');
+              }
+            }}
+            placeholder="e.g. shopname@upi"
             className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300 font-mono text-emerald-700 font-semibold focus:outline-none focus:border-emerald-600"
           />
+          {upiError ? (
+            <p className="text-[11px] text-red-500 font-semibold mt-1 flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3" />
+              <span>{upiError}</span>
+            </p>
+          ) : (
+            <p className="text-[10px] text-slate-400 mt-0.5">
+              WhatsApp तकादा में सुरक्षित UPI पेमेंट लिंक जोड़ने के लिए।
+            </p>
+          )}
         </div>
 
         <div className="pt-2 flex items-center justify-between">
@@ -166,6 +209,77 @@ export default function SettingsView() {
           </button>
         </div>
       </form>
+
+      {/* App Lock & PIN Security (C4) */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-purple-50 text-purple-700">
+              <Lock className="w-4 h-4" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-slate-800">ऐप सुरक्षा लॉक (PIN Lock)</h4>
+              <p className="text-[11px] text-slate-400">
+                {pinConfig.enabled ? 'सुरक्षा लॉक सक्रिय है' : 'पिन लॉक बंद है'}
+              </p>
+            </div>
+          </div>
+          {pinConfig.enabled ? (
+            <button
+              type="button"
+              onClick={handleDisablePin}
+              className="px-3 py-1 bg-red-50 text-red-600 border border-red-200 rounded-lg text-xs font-bold hover:bg-red-100 transition"
+            >
+              हटाएं (Turn Off)
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsSettingPin(true)}
+              className="px-3 py-1 bg-purple-600 text-white rounded-lg text-xs font-bold hover:bg-purple-700 transition"
+            >
+              + पिन लगाएं (Set PIN)
+            </button>
+          )}
+        </div>
+
+        {isSettingPin && (
+          <form onSubmit={handleSavePin} className="p-3 bg-purple-50/60 rounded-xl border border-purple-200 space-y-2">
+            <label className="block text-[11px] font-bold text-purple-900">नया 4 से 6 अंकों का पिन दर्ज करें</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="password"
+                maxLength="6"
+                value={newPin}
+                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
+                placeholder="4-6 Digits PIN"
+                className="w-full text-xs px-3 py-2 bg-white rounded-xl border border-purple-300 font-bold tracking-widest text-center"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold whitespace-nowrap"
+              >
+                सेव करें
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsSettingPin(false)}
+                className="px-3 py-2 bg-white border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold"
+              >
+                रद्द
+              </button>
+            </div>
+            {pinError && <p className="text-[11px] text-red-600 font-bold">{pinError}</p>}
+          </form>
+        )}
+
+        {pinSuccess && (
+          <p className="text-[11px] text-emerald-600 font-bold flex items-center gap-1">
+            <Check className="w-3 h-3" />
+            <span>{pinSuccess}</span>
+          </p>
+        )}
+      </div>
 
       {/* App Preferences */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
@@ -206,14 +320,20 @@ export default function SettingsView() {
         </label>
       </div>
 
-      {/* Data Backup & Restore */}
+      {/* Data Backup & Restore (C5) */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
-        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
-          <Database className="w-4 h-4 text-emerald-600" />
-          <h4 className="text-xs font-bold text-slate-800">खाता बैकअप एवं रीस्टोर (Backup & Export)</h4>
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <Database className="w-4 h-4 text-emerald-600" />
+            <h4 className="text-xs font-bold text-slate-800">खाता बैकअप एवं रीस्टोर (Backup & Export)</h4>
+          </div>
+          <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            <span>{backupStatus.lastBackupLabel}</span>
+          </span>
         </div>
         <p className="text-[11px] text-slate-500">
-          अपना पूरा खाता सुरक्षित रखें या नए फोन में ले जाने के लिए 1-क्लिक बैकअप डाउनलोड करें।
+          ऐप स्वचालित रूप से पिछले 7 दिनों का रोलिंग बैकअप रखता है। फोन बदलने या सुरक्षित रखने हेतु 1-क्लिक डाउनलोड करें:
         </p>
 
         <div className="grid grid-cols-2 gap-2 pt-1">
@@ -223,7 +343,7 @@ export default function SettingsView() {
             className="p-2.5 rounded-xl border border-emerald-300 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-2xs"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>JSON बैकअप</span>
+            <span>JSON बैकअप (.json)</span>
           </button>
 
           <button
@@ -250,15 +370,41 @@ export default function SettingsView() {
         </div>
       </div>
 
-      {/* Danger Zone: Reset */}
-      <div className="bg-white rounded-2xl p-4 border border-red-100 shadow-2xs space-y-2">
+      {/* Offline & Privacy Disclosure (C6) */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-2.5">
+        <div className="flex items-center gap-2">
+          <WifiOff className="w-4 h-4 text-emerald-600" />
+          <h4 className="text-xs font-bold text-slate-800">गोपनीयता एवं ऑफ़लाइन कार्य (Privacy & Offline)</h4>
+        </div>
+        <div className="text-[11px] text-slate-600 space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-100">
+          <p className="flex items-start gap-1.5">
+            <span className="text-emerald-600 font-bold">•</span>
+            <span><b>100% स्थानीय डेटा:</b> आपका सारा खाता-बही डेटा केवल आपके डिवाइस में सुरक्षित रहता है।</span>
+          </p>
+          <p className="flex items-start gap-1.5">
+            <span className="text-emerald-600 font-bold">•</span>
+            <span><b>ऑफ़लाइन काम करता है:</b> लेन-देन जोड़ना, खाता देखना, रिपोर्ट्स और हिसाब बिना इंटरनेट के काम करते हैं।</span>
+          </p>
+          <p className="flex items-start gap-1.5">
+            <span className="text-emerald-600 font-bold">•</span>
+            <span><b>वॉयस इनपुट:</b> बोलने पर Google/Web Speech सेवा का उपयोग होता है (इंटरनेट होने पर बेहतर सटीकता)।</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Demo Data Management (C1) */}
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-2">
+        <h4 className="text-xs font-bold text-slate-800">परीक्षण एवं डेमो डेटा (Demo Data)</h4>
+        <p className="text-[11px] text-slate-500">
+          यदि आप ऐप के सभी फीचर्स टेस्ट करना चाहते हैं, तो डेमो किराना खाता लोड कर सकते हैं।
+        </p>
         <button
           type="button"
-          onClick={handleReset}
-          className="w-full py-2.5 rounded-xl border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold flex items-center justify-center gap-1.5 transition"
+          onClick={handleLoadDemoData}
+          className="w-full py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold flex items-center justify-center gap-1.5 transition"
         >
-          <RotateCcw className="w-3.5 h-3.5" />
-          <span>डिफ़ॉल्ट डेटा रीसेट करें (Reset Demo Data)</span>
+          <RotateCcw className="w-3.5 h-3.5 text-amber-700" />
+          <span>डेमो डेटा लोड करें (Load Demo Store)</span>
         </button>
       </div>
 
