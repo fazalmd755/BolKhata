@@ -13,36 +13,38 @@ import {
   Store
 } from 'lucide-react';
 import { useKhata } from '../../context/KhataContext';
+import { useTranslation } from '../../i18n';
 
 export default function DesktopSidebar({ activeTab, setActiveTab, onOpenVoice, onOpenAiAssistant }) {
   const { customers, transactions, shopSettings, overdueCustomers } = useKhata();
+  const { t } = useTranslation();
 
   const activeCustomersCount = customers.filter(c => c.balance > 0).length;
 
   const navItems = [
     { 
       id: 'home', 
-      label: 'डैशबोर्ड (Dashboard)', 
+      label: t('nav_dashboard'), 
       icon: LayoutDashboard,
       badge: null 
     },
     { 
       id: 'customers', 
-      label: 'ग्राहक खाता (Customers)', 
+      label: t('nav_customers_full'), 
       icon: Users,
       badge: activeCustomersCount > 0 ? activeCustomersCount : null,
       badgeColor: 'bg-emerald-100 text-emerald-800'
     },
     { 
       id: 'transactions', 
-      label: 'लेन-देन बही (Transactions)', 
+      label: t('nav_transactions'), 
       icon: Receipt,
       badge: transactions.filter(t => !t.deletedAt).length,
       badgeColor: 'bg-slate-100 text-slate-700'
     },
     { 
       id: 'ai_assistant', 
-      label: 'AI मुंशी (Voice Assistant)', 
+      label: t('nav_ai_assistant'), 
       icon: Bot,
       isSpecial: true,
       badge: 'Live',
@@ -50,14 +52,14 @@ export default function DesktopSidebar({ activeTab, setActiveTab, onOpenVoice, o
     },
     { 
       id: 'reports', 
-      label: 'डेबुक एवं रिपोर्ट (Reports)', 
+      label: t('nav_reports_full'), 
       icon: BarChart3,
-      badge: overdueCustomers.length > 0 ? `${overdueCustomers.length} Overdue` : null,
+      badge: overdueCustomers.length > 0 ? `${overdueCustomers.length} ${t('overdue_count')}` : null,
       badgeColor: 'bg-amber-100 text-amber-800'
     },
     { 
       id: 'settings', 
-      label: 'दुकान सेटिंग्स (Settings)', 
+      label: t('nav_settings_full'), 
       icon: Settings,
       badge: null 
     },
@@ -84,10 +86,10 @@ export default function DesktopSidebar({ activeTab, setActiveTab, onOpenVoice, o
               <div className="flex items-center gap-1.5">
                 <span className="font-extrabold text-slate-900 text-base tracking-tight">BolKhata</span>
                 <span className="text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.2 rounded-md">
-                  बोलखाता
+                  {t('brand_subtitle')}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 font-medium truncate">डिजिटल बही-खाता</p>
+              <p className="text-[11px] text-slate-400 font-medium truncate">{t('brand_ledger_tag')}</p>
             </div>
           </div>
         </div>
@@ -137,13 +139,13 @@ export default function DesktopSidebar({ activeTab, setActiveTab, onOpenVoice, o
         <button
           onClick={onOpenVoice}
           className="w-full py-3 px-3 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-98 text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/25 transition group"
-          title="बोलकर खाता लिखें (Voice Khata Entry)"
+          title={t('voice_entry')}
         >
           <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center shrink-0 group-hover:scale-110 transition">
             <Mic className="w-4 h-4 text-white animate-pulse" />
           </div>
           <span className="hidden lg:inline text-xs font-extrabold tracking-wide">
-            बोलकर लिखें (Voice)
+            {t('voice_entry')}
           </span>
         </button>
 
@@ -151,14 +153,14 @@ export default function DesktopSidebar({ activeTab, setActiveTab, onOpenVoice, o
         <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-xl bg-emerald-700 text-white font-extrabold flex items-center justify-center text-xs shrink-0 shadow-2xs">
-              {shopSettings.shopName.charAt(0)}
+              {(shopSettings?.shopName || 'B').charAt(0)}
             </div>
             <div className="hidden lg:block min-w-0">
               <p className="text-xs font-bold text-slate-800 truncate leading-tight">
-                {shopSettings.shopName}
+                {shopSettings?.shopName || t('brand_subtitle')}
               </p>
               <p className="text-[10px] text-slate-400 font-medium truncate">
-                {shopSettings.merchantName}
+                {shopSettings?.merchantName || ''}
               </p>
             </div>
           </div>

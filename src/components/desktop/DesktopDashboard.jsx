@@ -24,6 +24,7 @@ import { formatDisplayDate, formatRelativeTime, isOverdue, getDaysOverdue } from
 import { DEMO_VOICE_COMMANDS } from '../../data/mockData';
 import { parseVoiceInput } from '../../utils/voiceParser';
 import { speakText } from '../../utils/soundEffects';
+import { useTranslation } from '../../i18n';
 
 export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToReports, onOpenAiAssistant }) {
   const { 
@@ -39,6 +40,7 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
     checkDuplicateTransaction,
     shopSettings 
   } = useKhata();
+  const { t, language } = useTranslation();
 
   const totalOverdueAmount = overdueCustomers.reduce((sum, c) => sum + c.balance, 0);
   const clearedCustomersCount = customers.filter(c => c.balance <= 0).length;
@@ -129,7 +131,7 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
         <div className="bg-white rounded-2xl p-5 border border-red-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-1">
-              <span>कुल बाकी उधार (Net Udhaar)</span>
+              <span>{t('total_udhaar')}</span>
               <div className="p-2 rounded-xl bg-red-50 text-red-600">
                 <ArrowUpRight className="w-4 h-4" />
               </div>
@@ -139,8 +141,8 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
             </div>
           </div>
           <div className="text-xs text-slate-500 font-semibold mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span>{activeCustomersCount} ग्राहकों पर बकाया</span>
-            <span className="text-red-600 font-bold">देय</span>
+            <span>{activeCustomersCount} {t('customers_pending')}</span>
+            <span className="text-red-600 font-bold">{t('due_badge')}</span>
           </div>
         </div>
 
@@ -148,7 +150,7 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
         <div className="bg-white rounded-2xl p-5 border border-emerald-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-1">
-              <span>आज का जमा (Today's Collection)</span>
+              <span>{t('today_jama_label')}</span>
               <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
                 <ArrowDownLeft className="w-4 h-4" />
               </div>
@@ -158,8 +160,8 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
             </div>
           </div>
           <div className="text-xs text-emerald-700 font-semibold mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span>दुकान काउंटर वसूली</span>
-            <span className="font-bold">आज</span>
+            <span>{t('today_collection')}</span>
+            <span className="font-bold">{language === 'en' ? 'Today' : 'आज'}</span>
           </div>
         </div>
 
@@ -167,7 +169,7 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
         <div className="bg-white rounded-2xl p-5 border border-amber-100 shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-1">
-              <span>अतिदेय राशि (Overdue Total)</span>
+              <span>{t('overdue_count')}</span>
               <div className="p-2 rounded-xl bg-amber-50 text-amber-600">
                 <AlertTriangle className="w-4 h-4" />
               </div>
@@ -177,8 +179,8 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
             </div>
           </div>
           <div className="text-xs text-amber-800 font-semibold mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span>{overdueCustomers.length} ग्राहक लेट हैं</span>
-            <span className="text-[11px] bg-amber-100 px-2 py-0.5 rounded-full font-bold">तकादा भेजें</span>
+            <span>{overdueCustomers.length} {t('customers_late')}</span>
+            <span className="text-[11px] bg-amber-100 px-2 py-0.5 rounded-full font-bold">{t('send_reminder_short')}</span>
           </div>
         </div>
 
@@ -186,7 +188,7 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
         <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-1">
-              <span>कुल ग्राहक (Total Accounts)</span>
+              <span>{t('total_customers')}</span>
               <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
                 <Users className="w-4 h-4" />
               </div>
@@ -196,8 +198,8 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
             </div>
           </div>
           <div className="text-xs text-slate-500 font-semibold mt-3 pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span>{clearedCustomersCount} खाते पूरी तरह चुकता</span>
-            <span className="text-emerald-700 font-bold">सक्रिय</span>
+            <span>{clearedCustomersCount} {t('clear_badge')}</span>
+            <span className="text-emerald-700 font-bold">{t('active_ledger')}</span>
           </div>
         </div>
       </div>
@@ -205,7 +207,7 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
       {/* Prominent Voice Entry & Demo Commands Banner */}
       <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 rounded-3xl p-6 text-white shadow-md relative overflow-hidden">
         <div className="absolute right-0 -bottom-6 text-white/5 font-black text-9xl select-none pointer-events-none">
-          खाता
+          {language === 'en' ? 'KHATA' : 'खाता'}
         </div>
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -215,10 +217,14 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
               <span>Voice-First Kirana AI • 100% Client-Side</span>
             </div>
             <h2 className="text-xl lg:text-2xl font-black tracking-tight leading-snug">
-              माइक दबाकर बोलें — BolKhata हिसाब खुद लिख लेगा
+              {language === 'en'
+                ? 'Tap the mic and speak — BolKhata writes the ledger automatically'
+                : 'माइक दबाकर बोलें — BolKhata हिसाब खुद लिख लेगा'}
             </h2>
             <p className="text-xs text-emerald-100 font-medium">
-              उदाहरण: "रमेश भाई को 2500 का उधार दिया" या "सुरेश ने 1200 UPI जमा किए"। शून्य टाइपिंग, तुरंत बही-खाता एंट्री।
+              {language === 'en'
+                ? 'Example: "Ramesh ko 2500 udhaar diya" or "Suresh ne 1200 UPI jama kiya". Zero typing, instant khata entry.'
+                : 'उदाहरण: "रमेश भाई को 2500 का उधार दिया" या "सुरेश ने 1200 UPI जमा किए"। शून्य टाइपिंग, तुरंत बही-खाता एंट्री।'}
             </p>
           </div>
 
@@ -230,14 +236,14 @@ export default function DesktopDashboard({ onOpenVoice, onGoToKhata, onGoToRepor
               <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center">
                 <Mic className="w-3.5 h-3.5 animate-pulse" />
               </div>
-              <span>बोलकर एंट्री करें</span>
+              <span>{t('instant_voice')}</span>
             </button>
 
             <button
               onClick={onOpenAiAssistant}
               className="py-3 px-5 rounded-2xl bg-emerald-900/70 hover:bg-emerald-900 text-white border border-emerald-500/40 text-xs font-bold transition flex items-center gap-2"
             >
-              <span>AI मुंशी से पूछें</span>
+              <span>{t('ai_munshi')}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>

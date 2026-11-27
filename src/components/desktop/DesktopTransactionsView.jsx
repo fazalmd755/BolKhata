@@ -13,9 +13,11 @@ import {
 } from 'lucide-react';
 import { useKhata } from '../../context/KhataContext';
 import { formatDisplayDate } from '../../utils/dateUtils';
+import { useTranslation } from '../../i18n';
 
 export default function DesktopTransactionsView() {
-  const { transactions, customers, setSelectedCustomerId, setActiveModal, setModalPayload } = useKhata();
+  const { transactions, setSelectedCustomerId, setActiveModal } = useKhata();
+  const { t, language } = useTranslation();
   const [filterType, setFilterType] = useState('all'); // 'all' | 'credit' | 'payment'
   const [query, setQuery] = useState('');
 
@@ -66,10 +68,10 @@ export default function DesktopTransactionsView() {
       <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-black text-slate-900 tracking-tight">
-            लेन-देन बही (All Transactions Ledger)
+            {t('all_txns_title')}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            कुल {filteredTxns.length} लेन-देन रिकॉर्ड मिले
+            {language === 'en' ? `${filteredTxns.length} transaction records found` : `कुल ${filteredTxns.length} लेन-देन रिकॉर्ड मिले`}
           </p>
         </div>
 
@@ -81,7 +83,7 @@ export default function DesktopTransactionsView() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="ग्राहक या सामान खोजें..."
+              placeholder={t('search_txn_placeholder')}
               className="pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:bg-white transition"
             />
           </div>
@@ -94,7 +96,7 @@ export default function DesktopTransactionsView() {
                 filterType === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              सभी ({activeTxns.length})
+              {t('filter_all')} ({activeTxns.length})
             </button>
             <button
               onClick={() => setFilterType('credit')}

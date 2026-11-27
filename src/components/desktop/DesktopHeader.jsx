@@ -13,6 +13,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import { useKhata } from '../../context/KhataContext';
+import { useTranslation } from '../../i18n';
 
 export default function DesktopHeader({ onOpenVoice, onOpenPhoneModal, onOpenAiAssistant }) {
   const { 
@@ -21,9 +22,9 @@ export default function DesktopHeader({ onOpenVoice, onOpenPhoneModal, onOpenAiA
     shopSettings, 
     setShopSettings, 
     setActiveModal, 
-    setModalPayload,
-    overdueCustomers 
+    setModalPayload
   } = useKhata();
+  const { t, isEnglish, toggleLanguage } = useTranslation();
 
   const toggleSound = () => {
     setShopSettings(prev => ({
@@ -47,7 +48,7 @@ export default function DesktopHeader({ onOpenVoice, onOpenPhoneModal, onOpenAiA
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="ग्राहक का नाम या फोन नंबर खोजें (Search customers or phone)..."
+            placeholder={t('search_customers_placeholder')}
             className="w-full pl-10 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-600 focus:bg-white transition"
           />
           {searchQuery && (
@@ -72,25 +73,35 @@ export default function DesktopHeader({ onOpenVoice, onOpenPhoneModal, onOpenAiA
           <span className="text-[11px] text-emerald-700 font-normal">Active Ledger</span>
         </div>
 
+        {/* Language Switcher Pill */}
+        <button
+          onClick={toggleLanguage}
+          className="px-3 py-2 min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-extrabold transition flex items-center gap-1"
+          title={t('language_label')}
+          aria-label="Switch language"
+        >
+          <span>{isEnglish ? 'EN' : 'HI'}</span>
+        </button>
+
         {/* AI Munshi Voice Assistant Button */}
         <button
           onClick={onOpenAiAssistant}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white text-xs font-bold shadow-sm shadow-emerald-700/20 active:scale-95 transition"
-          title="बोलखाता AI मुंशी से बात करें (Chat with AI Munshi)"
-          aria-label="बोलखाता AI मुंशी से बात करें (Chat with AI Munshi)"
+          title={t('ai_card_title')}
+          aria-label={t('ai_card_title')}
         >
           <Bot className="w-3.5 h-3.5 animate-pulse text-white" />
-          <span className="hidden sm:inline">AI मुंशी</span>
+          <span className="hidden sm:inline">{t('ai_munshi')}</span>
         </button>
 
         {/* + Naya Khata / Add Customer Button */}
         <button
           onClick={handleAddNewCustomer}
-          aria-label="Add new customer"
+          aria-label={t('new_customer_btn')}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold shadow-sm transition min-h-[44px]"
         >
           <PlusCircle className="w-4 h-4" />
-          <span className="hidden md:inline">+ नया ग्राहक</span>
+          <span className="hidden md:inline">{t('new_customer_btn')}</span>
         </button>
 
         {/* QR Code Connect on Phone */}

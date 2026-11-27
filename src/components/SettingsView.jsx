@@ -36,7 +36,7 @@ import { DEFAULT_SHOP_SETTINGS } from '../data/mockData';
 
 export default function SettingsView() {
   const { customers, transactions, shopSettings, setShopSettings, resetToDemoData, clearAllData, restoreBackupData } = useKhata();
-  const { t } = useTranslation();
+  const { t, language, setLanguage } = useTranslation();
   const [formData, setFormData] = useState({ ...shopSettings });
   const [saved, setSaved] = useState(false);
   const [upiError, setUpiError] = useState('');
@@ -156,23 +156,23 @@ export default function SettingsView() {
       {/* Header */}
       <div>
         <h2 className="text-base font-bold text-slate-900">{t('settings_title')}</h2>
-        <p className="text-xs text-slate-500">Shop Profile & Preferences</p>
+        <p className="text-xs text-slate-500">{t('settings_subtitle')}</p>
       </div>
 
       {/* Merchant Profile Card */}
       <form onSubmit={handleSave} className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
         <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
           <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black text-lg shadow-sm">
-            {formData.shopName.charAt(0)}
+            {(formData.shopName || 'B').charAt(0)}
           </div>
           <div>
-            <h3 className="font-bold text-sm text-slate-900">{formData.shopName}</h3>
+            <h3 className="font-bold text-sm text-slate-900">{formData.shopName || t('brand_subtitle')}</h3>
             <p className="text-xs text-slate-500">{formData.merchantName} • +91 {formData.phone}</p>
           </div>
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-slate-500 mb-1">दुकान का नाम (Shop Name)</label>
+          <label className="block text-[11px] font-bold text-slate-500 mb-1">{t('shop_name')}</label>
           <input
             type="text"
             value={formData.shopName}
@@ -182,7 +182,7 @@ export default function SettingsView() {
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-slate-500 mb-1">दुकानदार का नाम (Merchant Name)</label>
+          <label className="block text-[11px] font-bold text-slate-500 mb-1">{t('owner_name')}</label>
           <input
             type="text"
             value={formData.merchantName}
@@ -192,14 +192,14 @@ export default function SettingsView() {
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-slate-500 mb-1">UPI ID (फॉर WhatsApp पेमेंट लिंक)</label>
+          <label className="block text-[11px] font-bold text-slate-500 mb-1">{t('upi_id')}</label>
           <input
             type="text"
             value={formData.upiId}
             onChange={(e) => {
               setFormData({ ...formData, upiId: e.target.value });
               if (e.target.value && !isValidUpiId(e.target.value)) {
-                setUpiError('अमान्य UPI ID प्रारूप (उदा: yourname@upi)');
+                setUpiError(language === 'en' ? 'Invalid UPI ID format (e.g. yourname@upi)' : 'अमान्य UPI ID प्रारूप (उदा: yourname@upi)');
               } else {
                 setUpiError('');
               }
@@ -214,20 +214,24 @@ export default function SettingsView() {
             </p>
           ) : (
             <p className="text-[10px] text-slate-400 mt-0.5">
-              WhatsApp तकादा में सुरक्षित UPI पेमेंट लिंक जोड़ने के लिए।
+              {t('upi_hint')}
             </p>
           )}
         </div>
 
         <div>
-          <label className="block text-[11px] font-bold text-slate-500 mb-1">भाषा (Language Setting)</label>
+          <label className="block text-[11px] font-bold text-slate-500 mb-1">{t('language_label')}</label>
           <select
-            value={formData.language || 'hi'}
-            onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+            value={language}
+            onChange={(e) => {
+              const nextLang = e.target.value;
+              setLanguage(nextLang);
+              setFormData({ ...formData, language: nextLang === 'en' ? 'en-IN' : 'hi-IN' });
+            }}
             className="w-full text-xs px-3 py-2 rounded-xl border border-slate-300 font-semibold focus:outline-none focus:border-emerald-600 bg-white"
           >
-            <option value="hi">हिन्दी (Hindi) - डिफ़ॉल्ट</option>
-            <option value="en">English (अंग्रेजी)</option>
+            <option value="hi">{t('lang_hinglish_option')}</option>
+            <option value="en">{t('lang_english_option')}</option>
           </select>
         </div>
 
@@ -237,7 +241,7 @@ export default function SettingsView() {
             className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition"
           >
             {saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-            <span>{saved ? 'सेव हो गया!' : 'प्रोफ़ाइल सेव करें'}</span>
+            <span>{saved ? t('profile_saved') : t('save_profile')}</span>
           </button>
         </div>
       </form>
@@ -250,9 +254,9 @@ export default function SettingsView() {
               <Lock className="w-4 h-4" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-slate-800">ऐप सुरक्षा लॉक (PIN Lock)</h4>
+              <h4 className="text-xs font-bold text-slate-800">{t('security_pin')}</h4>
               <p className="text-[11px] text-slate-400">
-                {pinConfig.enabled ? 'सुरक्षा लॉक सक्रिय है' : 'पिन लॉक बंद है'}
+                {pinConfig.enabled ? t('pin_enabled_desc') : t('pin_disabled_desc')}
               </p>
             </div>
           </div>
@@ -357,7 +361,7 @@ export default function SettingsView() {
         <div className="flex items-center justify-between pb-2 border-b border-slate-100">
           <div className="flex items-center gap-2">
             <Database className="w-4 h-4 text-emerald-600" />
-            <h4 className="text-xs font-bold text-slate-800">खाता बैकअप एवं रीस्टोर (Backup & Export)</h4>
+            <h4 className="text-xs font-bold text-slate-800">{t('backup_data')}</h4>
           </div>
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
             backupStatus.isOverdue 
@@ -365,11 +369,13 @@ export default function SettingsView() {
               : 'text-emerald-700 bg-emerald-50 border border-emerald-200'
           }`}>
             <Clock className="w-3 h-3" />
-            <span>अंतिम बैकअप: {backupStatus.lastBackupDaysAgo}</span>
+            <span>{language === 'en' ? `Last backup: ${backupStatus.lastBackupDaysAgo}` : `अंतिम बैकअप: ${backupStatus.lastBackupDaysAgo}`}</span>
           </span>
         </div>
         <p className="text-[11px] text-slate-500">
-          ऐप स्वचालित रूप से पिछले 7 दिनों का रोलिंग बैकअप रखता है। फोन बदलने या सुरक्षित रखने हेतु 1-क्लिक डाउनलोड करें:
+          {language === 'en'
+            ? 'The app keeps an automatic rolling 7-day backup. Download a 1-click copy before switching phones:'
+            : 'ऐप स्वचालित रूप से पिछले 7 दिनों का रोलिंग बैकअप रखता है। फोन बदलने या सुरक्षित रखने हेतु 1-क्लिक डाउनलोड करें:'}
         </p>
 
         <div className="grid grid-cols-2 gap-2 pt-1">
@@ -379,7 +385,7 @@ export default function SettingsView() {
             className="p-2.5 rounded-xl border border-emerald-300 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-2xs"
           >
             <Download className="w-3.5 h-3.5" />
-            <span>JSON बैकअप (.json)</span>
+            <span>{language === 'en' ? 'JSON Backup (.json)' : 'JSON बैकअप (.json)'}</span>
           </button>
 
           <button
@@ -388,14 +394,14 @@ export default function SettingsView() {
             className="p-2.5 rounded-xl border border-blue-300 bg-blue-50/70 hover:bg-blue-100 text-blue-800 text-xs font-bold flex items-center justify-center gap-1.5 transition active:scale-95 shadow-2xs"
           >
             <FileSpreadsheet className="w-3.5 h-3.5" />
-            <span>Excel (CSV) बही</span>
+            <span>{t('export_csv')}</span>
           </button>
         </div>
 
         <div className="pt-1">
           <label className="w-full py-2.5 rounded-xl border border-dashed border-slate-300 hover:border-emerald-500 bg-slate-50 hover:bg-emerald-50/50 text-slate-700 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition">
             <Upload className="w-3.5 h-3.5 text-emerald-600" />
-            <span>बैकअप फ़ाइल रीस्टोर करें (.JSON)</span>
+            <span>{t('restore_data')} (.JSON)</span>
             <input
               type="file"
               accept=".json"
@@ -410,29 +416,31 @@ export default function SettingsView() {
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-2.5">
         <div className="flex items-center gap-2">
           <WifiOff className="w-4 h-4 text-emerald-600" />
-          <h4 className="text-xs font-bold text-slate-800">गोपनीयता एवं ऑफ़लाइन कार्य (Privacy & Offline)</h4>
+          <h4 className="text-xs font-bold text-slate-800">{t('privacy_notice')}</h4>
         </div>
         <div className="text-[11px] text-slate-600 space-y-1.5 bg-slate-50 p-3 rounded-xl border border-slate-100">
           <p className="flex items-start gap-1.5">
             <span className="text-emerald-600 font-bold">•</span>
-            <span><b>100% स्थानीय डेटा:</b> आपका सारा खाता-बही डेटा केवल आपके डिवाइस में सुरक्षित रहता है।</span>
+            <span>{language === 'en' ? <><b>100% Local Data:</b> All ledger data stays safely on your device.</> : <><b>100% स्थानीय डेटा:</b> आपका सारा खाता-बही डेटा केवल आपके डिवाइस में सुरक्षित रहता है।</>}</span>
           </p>
           <p className="flex items-start gap-1.5">
             <span className="text-emerald-600 font-bold">•</span>
-            <span><b>ऑफ़लाइन काम करता है:</b> लेन-देन जोड़ना, खाता देखना, रिपोर्ट्स और हिसाब बिना इंटरनेट के काम करते हैं।</span>
+            <span>{language === 'en' ? <><b>Works Offline:</b> Adding entries, viewing ledgers, reports, and balances work without internet.</> : <><b>ऑफ़लाइन काम करता है:</b> लेन-देन जोड़ना, खाता देखना, रिपोर्ट्स और हिसाब बिना इंटरनेट के काम करते हैं।</>}</span>
           </p>
           <p className="flex items-start gap-1.5">
             <span className="text-emerald-600 font-bold">•</span>
-            <span><b>वॉयस इनपुट:</b> बोलने पर Google/Web Speech सेवा का उपयोग होता है (इंटरनेट होने पर बेहतर सटीकता)।</span>
+            <span>{language === 'en' ? <><b>Voice Input:</b> Uses device/browser speech recognition (internet improves accuracy).</> : <><b>वॉयस इनपुट:</b> बोलने पर Google/Web Speech सेवा का उपयोग होता है (इंटरनेट होने पर बेहतर सटीकता)।</>}</span>
           </p>
         </div>
       </div>
 
       {/* Demo Data Management & Clean Slate (C1) */}
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-2.5">
-        <h4 className="text-xs font-bold text-slate-800">डेटा रीसेट एवं फ़्रेश शुरुआत (Data Reset)</h4>
+        <h4 className="text-xs font-bold text-slate-800">{language === 'en' ? 'Data Reset & Fresh Start' : 'डेटा रीसेट एवं फ़्रेश शुरुआत (Data Reset)'}</h4>
         <p className="text-[11px] text-slate-500">
-          टेस्टिंग के लिए डेमो डेटा लोड कर सकते हैं, या सारा डेटा साफ़ करके एकदम नई शुरुआत कर सकते हैं।
+          {language === 'en'
+            ? 'Load sample demo data for testing, or clear all data for a clean fresh ledger.'
+            : 'टेस्टिंग के लिए डेमो डेटा लोड कर सकते हैं, या सारा डेटा साफ़ करके एकदम नई शुरुआत कर सकते हैं।'}
         </p>
         <div className="space-y-2 pt-1">
           <button
@@ -441,7 +449,7 @@ export default function SettingsView() {
             className="w-full py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold flex items-center justify-center gap-1.5 transition"
           >
             <RotateCcw className="w-3.5 h-3.5 text-amber-700" />
-            <span>डेमो डेटा लोड करें (Load Demo Store)</span>
+            <span>{t('demo_data')}</span>
           </button>
 
           <button

@@ -33,7 +33,7 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
     shopSettings 
   } = useKhata();
 
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const backupStatus = getBackupStatus();
 
   const recentTxns = transactions.filter(t => !t.deletedAt).slice(0, 5);
@@ -59,8 +59,8 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
             <div>
-              <span className="font-bold">बैकअप रिमाइंडर: </span>
-              <span>अंतिम बैकअप 7 दिन से पुराना है। सेटिंग्स में जाकर बैकअप सुरक्षित करें।</span>
+              <span className="font-bold">{t('backup_reminder_title')}</span>
+              <span>{t('backup_reminder_desc')}</span>
             </div>
           </div>
           <ChevronRight className="w-4 h-4 text-amber-700 shrink-0" />
@@ -71,32 +71,32 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
       <div className="bg-gradient-to-tr from-emerald-800 via-emerald-700 to-teal-700 rounded-3xl p-4 text-white shadow-md relative overflow-hidden">
         {/* Background decorative watermark */}
         <div className="absolute right-0 -bottom-4 text-white/5 font-black text-7xl select-none pointer-events-none">
-          खाता
+          {language === 'en' ? 'KHATA' : 'खाता'}
         </div>
 
         <div className="flex items-center justify-between text-xs text-emerald-100 font-medium mb-1">
           <span>{t('total_udhaar')}</span>
           <span className="text-[10px] bg-emerald-900/60 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-            {activeCustomersCount} ग्राहक
+            {activeCustomersCount} {t('customers_unit')}
           </span>
         </div>
 
         <div className="text-3xl font-black tracking-tight text-white flex items-baseline gap-1">
           <span>₹{totalPendingUdhaar.toLocaleString('en-IN')}</span>
-          <span className="text-xs font-semibold text-emerald-200">बाकी</span>
+          <span className="text-xs font-semibold text-emerald-200">{t('remaining_short')}</span>
         </div>
 
         <div className="mt-3 pt-2.5 border-t border-emerald-600/60 flex items-center justify-between text-xs">
           <div>
-            <span className="text-emerald-200 text-[11px] block">आज का जमा (Today):</span>
+            <span className="text-emerald-200 text-[11px] block">{t('today_jama_label')}:</span>
             <span className="font-bold text-white text-sm">
               ₹{paymentsToday.toLocaleString('en-IN')}
             </span>
           </div>
           <div className="text-right">
-            <span className="text-emerald-200 text-[11px] block">अतिदेय (Overdue):</span>
+            <span className="text-emerald-200 text-[11px] block">{t('overdue_count')}:</span>
             <span className="font-bold text-amber-300 text-sm">
-              {overdueCustomers.length} ग्राहक लेट
+              {overdueCustomers.length} {t('customers_late')}
             </span>
           </div>
         </div>
@@ -115,7 +115,7 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
             <div>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <h4 className="font-extrabold text-xs sm:text-sm text-slate-900 group-hover:text-emerald-800 transition">
-                  बोलखाता AI मुंशी से बात करें
+                  {t('ai_card_title')}
                 </h4>
                 <span className="text-[9px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-200 animate-ping"></span>
@@ -123,7 +123,7 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
                 </span>
               </div>
               <p className="text-[11px] text-slate-600 mt-0.5 line-clamp-1 font-medium">
-                पूछें: 'कुल कितना बकाया है?', 'नया ग्राहक जोड़ो' या 'आज मोहन ने 1000 लिया'
+                {t('ai_card_subtitle')}
               </p>
             </div>
           </div>
@@ -142,7 +142,7 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
           <div className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs">
             <Mic className="w-5 h-5 animate-pulse" />
           </div>
-          <span className="text-[11px] font-bold text-emerald-900">बोलकर लिखें</span>
+          <span className="text-[11px] font-bold text-emerald-900">{t('voice_entry')}</span>
         </button>
 
         <button
@@ -155,7 +155,7 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
           <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
             <Plus className="w-5 h-5" />
           </div>
-          <span className="text-[11px] font-bold text-slate-800">+ नई एंट्री</span>
+          <span className="text-[11px] font-bold text-slate-800">{t('manual_entry')}</span>
         </button>
 
         <button
@@ -165,7 +165,7 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
           <div className="w-9 h-9 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
             <FileText className="w-5 h-5" />
           </div>
-          <span className="text-[11px] font-bold text-slate-800">डेबुक</span>
+          <span className="text-[11px] font-bold text-slate-800">{t('quick_reports')}</span>
         </button>
 
         <button
@@ -178,7 +178,7 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
           <div className="w-9 h-9 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center">
             <Share2 className="w-5 h-5" />
           </div>
-          <span className="text-[11px] font-bold text-slate-800">तकादा</span>
+          <span className="text-[11px] font-bold text-slate-800">{t('send_reminder_short')}</span>
         </button>
       </div>
 
@@ -188,10 +188,10 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
               <AlertTriangle className="w-4 h-4 text-amber-600" />
-              <span>अतिदेय ग्राहक (Payment Overdue Alert)</span>
+              <span>{t('overdue_count')}</span>
             </div>
             <span className="text-[10px] bg-amber-200/80 text-amber-900 font-bold px-2 py-0.5 rounded-full">
-              {overdueCustomers.length} ग्राहक
+              {overdueCustomers.length} {t('customers_unit')}
             </span>
           </div>
 
@@ -204,7 +204,9 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
               >
                 <div>
                   <h4 className="font-bold text-xs text-slate-900">{c.name}</h4>
-                  <span className="text-[10px] text-red-600 font-semibold">देय तिथि बीत चुकी है ({c.dueDate})</span>
+                  <span className="text-[10px] text-red-600 font-semibold">
+                    {language === 'en' ? `Due date passed (${c.dueDate})` : `देय तिथि बीत चुकी है (${c.dueDate})`}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="font-black text-sm text-red-600">₹{c.balance.toLocaleString('en-IN')}</span>
@@ -228,12 +230,12 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
       {/* Recent Transactions List */}
       <div className="space-y-2">
         <div className="flex items-center justify-between px-1">
-          <h3 className="text-xs font-bold text-slate-700">हालिया लेन-देन (Recent Transactions)</h3>
+          <h3 className="text-xs font-bold text-slate-700">{t('recent_transactions')}</h3>
           <button 
             onClick={onGoToKhata}
             className="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5"
           >
-            <span>सभी देखें</span>
+            <span>{t('view_all')}</span>
             <ChevronRight className="w-3 h-3" />
           </button>
         </div>
@@ -244,8 +246,10 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
               <Mic className="w-6 h-6" />
             </div>
             <div>
-              <h4 className="text-xs font-bold text-slate-800">अभी तक कोई लेन-देन दर्ज नहीं है</h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">माइक दबाकर बोलें या नया ग्राहक जोड़ें</p>
+              <h4 className="text-xs font-bold text-slate-800">{t('no_transactions_yet')}</h4>
+              <p className="text-[11px] text-slate-400 mt-0.5">
+                {language === 'en' ? 'Tap the mic to speak or add a customer' : 'माइक दबाकर बोलें या नया ग्राहक जोड़ें'}
+              </p>
             </div>
             <div className="flex items-center justify-center gap-2 pt-1">
               <button
@@ -253,18 +257,18 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
               >
                 <Mic className="w-3.5 h-3.5" />
-                <span>बोलकर पहली एंट्री करें</span>
+                <span>{t('instant_voice')}</span>
               </button>
             </div>
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden shadow-2xs">
-            {recentTxns.map(t => {
-              const isCredit = t.type === 'credit';
+            {recentTxns.map(txn => {
+              const isCredit = txn.type === 'credit';
               return (
                 <div 
-                  key={t.id}
-                  onClick={() => handleOpenCustomer(t.customerId)}
+                  key={txn.id}
+                  onClick={() => handleOpenCustomer(txn.customerId)}
                   className="p-3 flex items-center justify-between hover:bg-slate-50 cursor-pointer transition"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -274,9 +278,9 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
                       {isCredit ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownLeft className="w-4 h-4" />}
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-bold text-xs text-slate-800 truncate">{t.customerName}</h4>
+                      <h4 className="font-bold text-xs text-slate-800 truncate">{txn.customerName}</h4>
                       <p className="text-[10px] text-slate-400">
-                        {formatRelativeTime(t.date)} • {t.paymentMethod || 'Khata'}
+                        {formatRelativeTime(txn.date)} • {txn.paymentMethod || 'Khata'}
                       </p>
                     </div>
                   </div>
@@ -285,10 +289,10 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
                     <div className={`text-sm font-black ${
                       isCredit ? 'text-red-600' : 'text-emerald-600'
                     }`}>
-                      {isCredit ? '+' : '-'} ₹{Number(t.amount).toLocaleString('en-IN')}
+                      {isCredit ? '+' : '-'} ₹{Number(txn.amount).toLocaleString('en-IN')}
                     </div>
                     <span className="text-[9px] font-semibold text-slate-400">
-                      {isCredit ? 'उधार' : 'जमा'}
+                      {isCredit ? t('due_badge') : t('payment_title')}
                     </span>
                   </div>
                 </div>

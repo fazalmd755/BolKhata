@@ -12,8 +12,10 @@ import {
   Mic
 } from 'lucide-react';
 import { generateQrSvgDataUrl } from '../utils/qrCode';
+import { useTranslation } from '../i18n';
 
 export default function PhoneConnectModal({ isOpen, onClose }) {
+  const { t } = useTranslation();
   const [copiedLocal, setCopiedLocal] = useState(false);
   const [copiedCustom, setCopiedCustom] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState('wifi'); // 'wifi' | 'custom'
@@ -56,13 +58,13 @@ export default function PhoneConnectModal({ isOpen, onClose }) {
             </div>
             <div>
               <h2 className="text-base font-bold flex items-center gap-2">
-                <span>अपने फोन पर चलाएं</span>
+                <span>{t('phone_connect_title')}</span>
                 <span className="text-[10px] bg-white/25 px-2 py-0.5 rounded-full font-semibold">
                   Live
                 </span>
               </h2>
               <p className="text-xs text-white/80">
-                Scan QR Code & Use on Any Mobile
+                {t('phone_connect_subtitle')}
               </p>
             </div>
           </div>
@@ -114,7 +116,7 @@ export default function PhoneConnectModal({ isOpen, onClose }) {
               />
             </div>
             <p className="text-[11px] font-bold text-slate-500 mt-2">
-              कैमरा खोलकर स्कैन करें (Scan with Phone Camera)
+              {t('scan_with_camera')}
             </p>
           </div>
 
@@ -186,7 +188,7 @@ export default function PhoneConnectModal({ isOpen, onClose }) {
             onClick={onClose}
             className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition shadow-sm"
           >
-            समझ गया (Done)
+            {t('done')}
           </button>
         </div>
       </div>

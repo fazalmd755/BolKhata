@@ -12,9 +12,11 @@ import {
   Sparkles
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
+import { useTranslation } from '../i18n';
 
 export default function MobileHeader({ onOpenPhoneModal, onOpenAiAssistant }) {
-  const { shopSettings, setShopSettings, resetToDemoData } = useKhata();
+  const { shopSettings, setShopSettings } = useKhata();
+  const { t, isEnglish, toggleLanguage } = useTranslation();
 
   const toggleSound = () => {
     setShopSettings(prev => ({
@@ -37,7 +39,7 @@ export default function MobileHeader({ onOpenPhoneModal, onOpenAiAssistant }) {
             </h1>
           </div>
           <p className="text-[10px] text-emerald-100 font-medium flex items-center gap-1">
-            <span>बोलखाता</span>
+            <span>{t('brand_subtitle')}</span>
             <span>•</span>
             <span>{shopSettings.merchantName}</span>
           </p>
@@ -46,14 +48,24 @@ export default function MobileHeader({ onOpenPhoneModal, onOpenAiAssistant }) {
 
       {/* Header Actions */}
       <div className="flex items-center gap-1.5">
+        {/* Language Toggle Pill (EN / HI) */}
+        <button
+          onClick={toggleLanguage}
+          className="px-2 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-extrabold border border-emerald-400/50 transition active:scale-95"
+          title={t('language_label')}
+          aria-label="Switch language"
+        >
+          {isEnglish ? 'EN' : 'HI'}
+        </button>
+
         {/* AI Assistant Button */}
         <button
           onClick={onOpenAiAssistant}
           className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-gradient-to-r from-teal-500 to-emerald-500 hover:from-teal-400 hover:to-emerald-400 text-white text-xs font-bold shadow-md shadow-emerald-900/40 transition active:scale-95 border border-emerald-300/40"
-          title="बोलखाता AI मुंशी से बात करें (Chat with AI)"
+          title={t('ai_card_title')}
         >
           <Bot className="w-3.5 h-3.5 text-white animate-pulse" />
-          <span className="text-[11px]">AI मुंशी</span>
+          <span className="text-[11px]">{t('ai_munshi')}</span>
         </button>
 
         {/* QR Code / Phone Connect button */}

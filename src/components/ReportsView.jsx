@@ -12,6 +12,7 @@ import {
 import { useKhata } from '../context/KhataContext';
 import { formatDisplayDate, toLocalDateKey } from '../utils/dateUtils';
 import { parseRupees, formatCurrency } from '../utils/money';
+import { useTranslation } from '../i18n';
 
 export default function ReportsView() {
   const { 
@@ -21,6 +22,7 @@ export default function ReportsView() {
     paymentsToday, 
     shopSettings 
   } = useKhata();
+  const { t } = useTranslation();
 
   const todayStr = toLocalDateKey(new Date());
   const activeTxns = transactions.filter(t => !t.deletedAt);
@@ -55,8 +57,8 @@ export default function ReportsView() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-base font-bold text-slate-900">डेबुक एवं रिपोर्ट (Daybook & Reports)</h2>
-          <p className="text-xs text-slate-500">दैनिक आय-व्यय और उधारी सारांश</p>
+          <h2 className="text-base font-bold text-slate-900">{t('daybook_title')}</h2>
+          <p className="text-xs text-slate-500">{t('daybook_subtitle')}</p>
         </div>
         <div className="flex items-center gap-1.5">
           <button
@@ -64,13 +66,13 @@ export default function ReportsView() {
             className="p-2 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold flex items-center gap-1"
           >
             <Share2 className="w-3.5 h-3.5" />
-            <span>Share</span>
+            <span>{t('share')}</span>
           </button>
           <button
             onClick={handlePrint}
             className="p-2.5 min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold"
-            title="Print Report"
-            aria-label="Print Report"
+            title={t('print')}
+            aria-label={t('print')}
           >
             <Printer className="w-3.5 h-3.5" />
           </button>
@@ -82,10 +84,10 @@ export default function ReportsView() {
         <div className="flex items-center justify-between text-xs font-bold text-slate-600">
           <div className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-emerald-600" />
-            <span>आज का हिसाब ({formatDisplayDate(new Date())})</span>
+            <span>{t('today_account')} ({formatDisplayDate(new Date())})</span>
           </div>
           <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full">
-            {todayTxns.length} एंट्रीज
+            {todayTxns.length} {t('entries')}
           </span>
         </div>
 
@@ -93,7 +95,7 @@ export default function ReportsView() {
           <div className="p-3 rounded-xl bg-red-50 border border-red-100">
             <div className="flex items-center gap-1 text-[11px] font-bold text-red-600 mb-0.5">
               <ArrowUpRight className="w-3.5 h-3.5" />
-              <span>उधार दिया (Credit)</span>
+              <span>{t('credit_title')}</span>
             </div>
             <div className="text-lg font-black text-red-600">
               ₹{todayCredit.toLocaleString('en-IN')}
@@ -103,7 +105,7 @@ export default function ReportsView() {
           <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-100">
             <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-700 mb-0.5">
               <ArrowDownLeft className="w-3.5 h-3.5" />
-              <span>जमा मिला (Payment)</span>
+              <span>{t('payment_title')}</span>
             </div>
             <div className="text-lg font-black text-emerald-700">
               ₹{todayPayment.toLocaleString('en-IN')}
@@ -114,10 +116,10 @@ export default function ReportsView() {
 
       {/* Today's Transactions Ledger */}
       <div className="space-y-2">
-        <h3 className="text-xs font-bold text-slate-700 px-1">आज की एंट्रियां (Today's Entries)</h3>
+        <h3 className="text-xs font-bold text-slate-700 px-1">{t('today_entries')}</h3>
         {todayTxns.length === 0 ? (
           <div className="p-6 text-center text-slate-400 text-xs bg-white rounded-2xl border border-slate-200">
-            आज कोई एंट्री नहीं हुई है।
+            {t('no_entries_today')}
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 shadow-2xs overflow-hidden">

@@ -9,6 +9,7 @@ import {
   Filter 
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
+import { useTranslation } from '../i18n';
 
 export default function DashboardStats() {
   const { 
@@ -23,14 +24,15 @@ export default function DashboardStats() {
     setActiveModal,
     customers
   } = useKhata();
+  const { t } = useTranslation();
 
   const totalOverdueAmount = overdueCustomers.reduce((sum, c) => sum + c.balance, 0);
 
   const filters = [
-    { id: 'all', label: 'सभी (All)', count: customers.length },
-    { id: 'pending', label: 'बाकी उधार (Pending)', count: activeCustomersCount },
-    { id: 'overdue', label: 'अतिदेय (Overdue)', count: overdueCustomers.length, highlight: true },
-    { id: 'cleared', label: 'चुकता (Cleared)', count: customers.filter(c => c.balance <= 0).length },
+    { id: 'all', label: t('filter_all'), count: customers.length },
+    { id: 'pending', label: t('filter_pending'), count: activeCustomersCount },
+    { id: 'overdue', label: t('filter_overdue'), count: overdueCustomers.length, highlight: true },
+    { id: 'cleared', label: t('filter_cleared'), count: customers.filter(c => c.balance <= 0).length },
   ];
 
   return (
@@ -40,7 +42,7 @@ export default function DashboardStats() {
         {/* Total Pending Udhaar (Red/Emerald) */}
         <div className="bg-white rounded-2xl p-3.5 border border-red-100 shadow-2xs relative overflow-hidden">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-1">
-            <span>कुल बाकी उधार</span>
+            <span>{t('total_udhaar')}</span>
             <div className="p-1.5 rounded-lg bg-red-50 text-red-600">
               <ArrowUpRight className="w-3.5 h-3.5" />
             </div>
@@ -49,14 +51,14 @@ export default function DashboardStats() {
             ₹{totalPendingUdhaar.toLocaleString('en-IN')}
           </div>
           <div className="text-[11px] text-slate-400 font-medium mt-0.5">
-            {activeCustomersCount} ग्राहकों पर बाकी
+            {activeCustomersCount} {t('customers_pending')}
           </div>
         </div>
 
         {/* Payments Collected Today (Green) */}
         <div className="bg-white rounded-2xl p-3.5 border border-emerald-100 shadow-2xs relative overflow-hidden">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-1">
-            <span>आज का जमा (Today)</span>
+            <span>{t('today_jama_label')}</span>
             <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600">
               <ArrowDownLeft className="w-3.5 h-3.5" />
             </div>
@@ -65,14 +67,14 @@ export default function DashboardStats() {
             ₹{paymentsToday.toLocaleString('en-IN')}
           </div>
           <div className="text-[11px] text-emerald-700 font-semibold mt-0.5">
-            आज की वसूली
+            {t('today_collection')}
           </div>
         </div>
 
         {/* Overdue / High Risk (Amber/Red) */}
         <div className="bg-white rounded-2xl p-3.5 border border-amber-100 shadow-2xs relative overflow-hidden">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-1">
-            <span>अतिदेय (Overdue)</span>
+            <span>{t('overdue_count')}</span>
             <div className="p-1.5 rounded-lg bg-amber-50 text-amber-600">
               <AlertTriangle className="w-3.5 h-3.5" />
             </div>
@@ -81,14 +83,14 @@ export default function DashboardStats() {
             ₹{totalOverdueAmount.toLocaleString('en-IN')}
           </div>
           <div className="text-[11px] text-amber-700 font-medium mt-0.5">
-            {overdueCustomers.length} ग्राहक लेट
+            {overdueCustomers.length} {t('customers_late')}
           </div>
         </div>
 
         {/* Total Registered Customers */}
         <div className="bg-white rounded-2xl p-3.5 border border-slate-200 shadow-2xs relative overflow-hidden">
           <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-1">
-            <span>कुल ग्राहक</span>
+            <span>{t('total_customers')}</span>
             <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600">
               <Users className="w-3.5 h-3.5" />
             </div>
@@ -97,7 +99,7 @@ export default function DashboardStats() {
             {customers.length}
           </div>
           <div className="text-[11px] text-slate-400 font-medium mt-0.5">
-            डिजिटल रजिस्टर
+            {t('digital_register')}
           </div>
         </div>
       </div>
@@ -110,7 +112,7 @@ export default function DashboardStats() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="ग्राहक का नाम या फोन नंबर खोजें (Search)..."
+            placeholder={t('search_customers_placeholder')}
             className="w-full pl-10 pr-4 py-2.5 bg-white border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 shadow-2xs"
           />
           {searchQuery && (

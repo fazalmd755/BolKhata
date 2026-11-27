@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
 import { isOverdue, getDaysOverdue, formatRelativeTime } from '../utils/dateUtils';
+import { useTranslation } from '../i18n';
 
 export default function CustomerCard({ customer }) {
   const { 
@@ -19,6 +20,7 @@ export default function CustomerCard({ customer }) {
     setActiveModal, 
     setModalPayload 
   } = useKhata();
+  const { t } = useTranslation();
 
   const balance = customer.balance;
   const isCustOverdue = customer.dueDate && isOverdue(customer.dueDate) && balance > 0;
@@ -85,11 +87,11 @@ export default function CustomerCard({ customer }) {
           <div className="text-[10px] font-semibold">
             {balance > 0 ? (
               <span className="text-red-500 bg-red-50 px-1.5 py-0.5 rounded-md">
-                बाकी (Due)
+                {t('due_badge')}
               </span>
             ) : (
               <span className="text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-md">
-                चुकता (Clear)
+                {t('clear_badge')}
               </span>
             )}
           </div>
@@ -99,7 +101,7 @@ export default function CustomerCard({ customer }) {
       {/* Bottom Action Strip */}
       <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
         <div className="text-[11px] text-slate-400 truncate max-w-[180px]">
-          {customer.notes || 'क्लिक करके खाता देखें'}
+          {customer.notes || t('click_to_view_khata')}
         </div>
 
         <div className="flex items-center gap-1.5">
