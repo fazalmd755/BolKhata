@@ -36,8 +36,23 @@ const COMMON_KIRANA_ITEMS = [
   'rashan', 'ration', 'kirana', 'samaan'
 ];
 
+const NON_NAME_WORDS = new Set([
+  'phone', 'mobile', 'mob', 'no', 'number', 'online', 'cash', 'upi', 'gpay', 'phonepe',
+  'paytm', 'udhaar', 'udhar', 'jama', 'payment', 'credit', 'balance', 'hisaab', 'samaan',
+  'maal', 'baki', 'baaki', 'rupaye', 'paise', 'rs', 'entry', 'customer', 'grahak', 'khata', 'naya',
+  'naye', 'new', 'bhai', 'seth', 'uncle', 'chacha', 'sir', 'ji', 'aaj', 'kal',
+  'उधार', 'जमा', 'कैश', 'हिसाब', 'सामान', 'रुपये', 'रुपए', 'रुपया', 'फोन', 'मोबाइल', 'नंबर',
+  // Hindi numbers (standard & fast compounds)
+  'ek', 'do', 'teen', 'char', 'chaar', 'panch', 'paanch', 'chhe', 'chhah', 'saat', 'aath', 'nau', 'das',
+  'gyarah', 'barah', 'terah', 'chaudah', 'pandrah', 'solah', 'satrah', 'atharah', 'unnis', 'bees',
+  'tees', 'chalis', 'pachas', 'saath', 'sattar', 'assi', 'nabbe', 'sau', 'hazar', 'hazaar', 'lakh', 'crore',
+  'ekso', 'doso', 'dosau', 'teenso', 'charso', 'panso', 'paanso', 'panchso', 'chhehso', 'saatso', 'aathso', 'nauso',
+  'dedhso', 'dhaiso', 'ekhazar', 'dohazar', 'teenhazar', 'charhazar', 'panchhazar', 'dashazar',
+  'एक', 'दो', 'तीन', 'चार', 'पांच', 'पाँच', 'छह', 'सात', 'आठ', 'नौ', 'दस', 'सौ', 'हजार', 'हज़ार', 'लाख'
+]);
+
 /**
- * Normalizes input text: replaces devanagari numerals, de-slurs rapid speech compounds
+ * Normalizes input text: converts devanagari numerals and safely expands compound verbs
  */
 export function normalizeText(text) {
   if (!text) return '';
@@ -46,28 +61,22 @@ export function normalizeText(text) {
     str = str.replaceAll(dev, eng);
   }
 
-  // De-slur rapid speech compounds (splits connected postpositions and fast verbs)
+  // Safely separate only explicit Hindi compound verbs (never arbitrary English words!)
   str = str
-    // Separate attached postpositions from names (e.g. "rameshko" -> "ramesh ko", "nitinse" -> "nitin se")
-    .replace(/([a-zA-Z\u0900-\u097F]{2,})(ko|ne|se|ka|ke|ki|bhai|bhaiya|ji)\b/gi, '$1 $2')
-    // Slurred fast action verbs in Hinglish
-    .replace(/\b(udhar|udhaar)(diya|diye|de|do)\b/gi, '$1 $2')
-    .replace(/\b(jama)(kiya|kiye|kar|karo|mila|mile|hua)\b/gi, '$1 $2')
-    .replace(/\b(mil)(gaya|gya|gaye|gye|raha)\b/gi, '$1 $2')
+    .replace(/\b(udhar|udhaar)(diya|diye|do)\b/gi, '$1 $2')
+    .replace(/\b(jama)(kiya|kiye|mila|mile)\b/gi, '$1 $2')
+    .replace(/\b(mil)(gaya|gya|gaye|gye)\b/gi, '$1 $2')
     .replace(/\b(aa)(gaya|gya|gaye|gye)\b/gi, '$1 $2')
     .replace(/\b(de)(diya|diye)\b/gi, '$1 $2')
-    .replace(/\b(le)(liya|liye|gaya|gaye)\b/gi, '$1 $2')
-    .replace(/\b(khate)(me|mein|pe)\b/gi, '$1 $2')
+    .replace(/\b(le)(liya|liye)\b/gi, '$1 $2')
     .replace(/\b(bhej)(diya|diye)\b/gi, '$1 $2')
-    .replace(/\b(likh)(lo|do|le)\b/gi, '$1 $2')
-    // Devanagari slurred words
+    // Devanagari compound verbs & postpositions
     .replace(/([\u0900-\u097F]{2,})(को|ने|से|का|के|की|भाई|जी)\b/g, '$1 $2')
     .replace(/(उधार)(दिया|दिए|दो)/g, '$1 $2')
-    .replace(/(जमा)(किया|किए|करो|मिला|मिले)/g, '$1 $2')
+    .replace(/(जमा)(किया|किए|मिला|मिले)/g, '$1 $2')
     .replace(/(मिल)(गया|गए)/g, '$1 $2')
     .replace(/(आ)(गया|गए)/g, '$1 $2')
-    .replace(/(दे)(दिया|दिए)/g, '$1 $2')
-    .replace(/(खाते)(में|पे)/g, '$1 $2');
+    .replace(/(दे)(दिया|दिए)/g, '$1 $2');
 
   return str.replace(/\s+/g, ' ').trim();
 }
@@ -261,8 +270,8 @@ export function calculateFuzzySimilarity(s1, s2) {
  * Extracts customer name by checking known customers and grammar markers
  */
 export function extractCustomerName(text, knownCustomers = []) {
-  if (!text) return { customerName: '', matchedKnown: false, customerId: null };
-  const lower = text.toLowerCase();
+  if (!text) return { customerName: 'Customer', matchedKnown: false, customerId: null, isNewCustomer: false };
+  const lower = text.toLowerCase().trim();
 
   // Step 0: Check Devanagari Name Map
   for (const [devName, mappedEng] of Object.entries(HINDI_NAME_MAP)) {
@@ -272,50 +281,32 @@ export function extractCustomerName(text, knownCustomers = []) {
         customerName: known ? known.name : mappedEng,
         matchedKnown: Boolean(known),
         customer: known || null,
-        customerId: known ? known.id : null
+        customerId: known ? known.id : null,
+        isNewCustomer: !known
       };
     }
   }
 
-  // Step 1: Match against known customers (Exact -> First Name -> Phonetic -> Fuzzy)
+  // Step 1: Match against known customers (Exact -> First Name -> Phonetic Variations)
   for (const cust of knownCustomers) {
     const custLower = cust.name.toLowerCase();
-    const parts = custLower.split(/\s+/);
     
-    // Exact or full name in text
+    // 1. Exact or full name in text
     if (lower.includes(custLower)) {
-      return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id };
+      return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id, isNewCustomer: false };
     }
 
-    // Check first name match (e.g. "Ramesh" in "Ramesh Kirana" or "Mohan" in "Mohan Lal")
-    const firstName = parts[0];
-    if (firstName.length >= 3 && new RegExp(`(?:^|\\s)${firstName}(?:\\s|$)`, 'i').test(lower)) {
-      return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id };
+    // 2. Check first name match (e.g. "Ramesh" in "Ramesh Kirana" or "Mohan" in "Mohan Lal")
+    const firstName = custLower.split(/\s+/)[0];
+    if (firstName.length >= 3 && new RegExp('\\b' + firstName + '\\b', 'i').test(lower)) {
+      return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id, isNewCustomer: false };
     }
 
-    // Phonetic match for fast/colloquial speech (e.g. "aneeta" -> "anita", "puja" -> "pooja", "rames" -> "ramesh")
-    const normCust = normalizeIndianPhonetics(cust.name);
-    const normText = normalizeIndianPhonetics(text);
-    if (normText.includes(normCust)) {
-      return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id };
-    }
-
-    const normFirst = normalizeIndianPhonetics(firstName);
-    if (normFirst.length >= 3 && new RegExp(`(?:^|\\s)${normFirst}(?:\\s|$)`).test(normText)) {
-      return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id };
-    }
-  }
-
-  // Fuzzy word similarity for fast/slurred speech
-  const textWords = text.split(/\s+/);
-  for (const cust of knownCustomers) {
-    const custFirst = cust.name.split(/\s+/)[0];
-    if (custFirst.length >= 4) {
-      for (const w of textWords) {
-        if (w.length >= 3 && calculateFuzzySimilarity(w, custFirst) >= 0.80) {
-          return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id };
-        }
-      }
+    // 3. Phonetic variations (e.g. "aneeta" -> "anita", "puja" -> "pooja", "rames" -> "ramesh")
+    const normFirst = firstName.replace(/sh/g, 's').replace(/ee/g, 'i').replace(/oo/g, 'u');
+    const normText = lower.replace(/sh/g, 's').replace(/ee/g, 'i').replace(/oo/g, 'u');
+    if (new RegExp('\\b' + normFirst + '\\b', 'i').test(normText)) {
+      return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id, isNewCustomer: false };
     }
   }
 
@@ -324,57 +315,53 @@ export function extractCustomerName(text, knownCustomers = []) {
   const newCustPattern = /(?:new\s+customer|naya\s+customer|naya\s+grahak|naye\s+grahak|naya\s+khata|add\s+new\s+customer|add\s+customer|नया\s*ग्राहक|नया\s*कस्टमर|नया\s*खाता)\s+([A-Za-z\u0900-\u097F]+(?:\s+[A-Za-z\u0900-\u097F]+)?)/i;
   const newCustMatch = text.match(newCustPattern);
   if (newCustMatch && newCustMatch[1]) {
-    let rawName = newCustMatch[1].trim();
-    // Strip non-name trailing words like 'add', 'phone', 'ka', 'ko', 'hai'
-    rawName = rawName.replace(/\b(add|karo|kare|jodo|phone|mobile|mob|ka|ko|se|ne|hai|banao|kholo|bhi)\b/gi, '').trim();
-    if (rawName.length >= 2) {
+    let rawName = newCustMatch[1].trim()
+      .replace(/\b(add|karo|kare|jodo|phone|mobile|mob|ka|ko|se|ne|hai|banao|kholo|bhi)\b/gi, '').trim();
+    if (rawName.length >= 2 && !NON_NAME_WORDS.has(rawName.toLowerCase())) {
       const formatted = rawName.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
       return { customerName: formatted, matchedKnown: false, customer: null, customerId: null, isNewCustomer: true };
     }
   }
 
   // Step 3: Use Hinglish marker patterns
-  // Examples:
-  // "Ramesh bhai ko", "Suresh se", "Mohan ne", "Pooja ji ko"
-  const markerRegex = /(?:^|\s)([A-Za-z\u0900-\u097F]+(?:\s+(?:bhai|ji|bhaiya|seth|chacha|uncle|aunty|sahab|kumar|devi|lal|kirana|sharma|verma|singh))?)\s*(?:ko|ne|ka|ke|se|to|from)\b/i;
+  // Examples: "Karan ko", "Sunita se", "Nitin ne", "Pooja ji ko"
+  const markerRegex = /(?:^|\s)([A-Za-z\u0900-\u097F]+(?:\s+(?:bhai|ji|bhaiya|seth|chacha|uncle|aunty|sahab|kumar|devi|lal|kirana|sharma|verma|singh))?)\s+(?:ko|ne|ka|ke|se|to|from)\b/i;
   const match = text.match(markerRegex);
 
   if (match && match[1]) {
-    let name = match[1].trim();
-    // Clean unwanted filler words
-    name = name.replace(/^(aaj|kal|parson|sun|bhai|hello|arre|got|payment|credit|udhaar)\s+/i, '').trim();
-    // Capitalize words
-    name = name.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-    if (name.length > 2) {
-      return { customerName: name, matchedKnown: false, customer: null, customerId: null };
+    let name = match[1].trim().replace(/^(aaj|kal|parson|sun|bhai|hello|arre|got|payment|credit|udhaar)\s+/i, '').trim();
+    if (name.length > 2 && !NON_NAME_WORDS.has(name.toLowerCase())) {
+      const formatted = name.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      return { customerName: formatted, matchedKnown: false, customer: null, customerId: null, isNewCustomer: true };
     }
   }
 
   // Fallback: check if "from X" or "X paid"
   const fromMatch = lower.match(/(?:from|se)\s+([a-zA-Z\u0900-\u097F]+)/i);
   if (fromMatch && fromMatch[1]) {
-    const cap = fromMatch[1].charAt(0).toUpperCase() + fromMatch[1].slice(1);
-    return { customerName: cap, matchedKnown: false, customer: null, customerId: null, isNewCustomer: true };
+    const word = fromMatch[1].toLowerCase();
+    if (!NON_NAME_WORDS.has(word) && word.length > 2) {
+      const cap = fromMatch[1].charAt(0).toUpperCase() + fromMatch[1].slice(1);
+      return { customerName: cap, matchedKnown: false, customer: null, customerId: null, isNewCustomer: true };
+    }
   }
 
   // Step 4: Positional / Structural Name Extraction for New Customers
   // When a merchant simply says "[Name] [Amount] [udhar/jama]" without "ko/ne/se"
   // e.g. "Karan 500 udhar", "Rahul Sharma 1200 jama", "करन 500 उधार", "सोनू दो सौ जमा"
-  const amountOrKeywordPattern = /(?:\b\d+|\b(?:₹|rs|inr|rupaye|sau|hazar|doso|dosau|dosou|teenso|teensau|teensou|charso|chaarso|panso|paanso|panchso|paanchso|chhehso|saatso|aathso|nauso|dedhso|dhaiso|udhar|udhaar|jama|cash|payment|credit|baki|baaki)\b|(?:^|\s)(?:दोसौ|तीनसौ|चारसौ|पांचसौ|पाँचसौ|छहसौ|सातसौ|आठसौ|नौसौ|डेढ़सौ|ढाईसौ|दो\s*सौ|तीन\s*सौ|चार\s*सौ|पांच\s*सौ|पाँच\s*सौ|दो|तीन|चार|पांच|पाँच|छह|सात|आठ|नौ|दस|बीस|तीस|चालीस|पचास|सौ|हज़ार|हजार|लाख|उधार|जमा|कैश|रुपये|रुपए|रुपया)(?:\s|$))/i;
+  const amountOrKeywordPattern = /(?:\b\d+|\b(?:₹|rs|inr|rupaye|sau|hazar|hazaar|lakh|ekso|eksau|doso|dosau|dosou|teenso|teensau|teensou|charso|chaarso|panso|paanso|panchso|paanchso|chhehso|saatso|aathso|nauso|dedhso|dhaiso|ekhazar|ekhazaar|dohazar|dohazaar|teenhazar|charhazar|panchhazar|dashazar|ek|do|teen|chaar|char|paanch|panch|chhah|cheh|chhe|saat|aath|nau|das|gyarah|barah|terah|chaudah|pandrah|solah|satrah|atharah|unnis|bees|tees|chalis|pachas|saath|sattar|assi|nabbe|udhar|udhaar|jama|cash|payment|credit|baki|baaki)\b|(?:^|\s)(?:एकहजार|दोहजार|तीन्हजार|चारहजार|पांचहजार|दसहजार|एकसौ|दोसौ|तीनसौ|चारसौ|पांचसौ|पाँचसौ|छहसौ|सातसौ|आठसौ|नौसौ|डेढ़सौ|ढाईसौ|दो\s*सौ|तीन\s*सौ|चार\s*सौ|पांच\s*सौ|पाँच\s*सौ|एक|दो|तीन|चार|पांच|पाँच|छह|सात|आठ|नौ|दस|बीस|तीस|चालीस|पचास|सौ|हज़ार|हजार|लाख|उधार|जमा|कैश|रुपये|रुपए|रुपया)(?:\s|$))/i;
   
   const amountIndex = text.search(amountOrKeywordPattern);
   if (amountIndex > 0) {
-    let candidateName = text.substring(0, amountIndex).trim();
-    // Strip leading filler words
-    candidateName = candidateName
+    let candidateName = text.substring(0, amountIndex).trim()
       .replace(/^(?:aaj|kal|parson|sun|suno|arre|hello|bhai|ji|bhaiya|likho|likh\s*do|entry|entry\s*karo|dokan|dukaan|khata|khate\s*me|नया|नए|नई|new|naya)\s+/gi, '')
       .replace(/\s+(?:ko|ne|ka|ke|se|to|from)$/i, '')
       .trim();
 
-    // Must be 1 to 3 words and at least 2 characters long, not pure numbers or intent words
     const words = candidateName.split(/\s+/).filter(Boolean);
     if (words.length >= 1 && words.length <= 3 && candidateName.length >= 2) {
-      if (!/^(?:udhaar|udhar|jama|cash|payment|credit|balance|rupaye|hisaab|samaan|baki|baaki|उधार|जमा|कैश|हिसाब|सामान)$/i.test(candidateName)) {
+      const isReserved = words.some(w => NON_NAME_WORDS.has(w.toLowerCase()));
+      if (!isReserved) {
         const formatted = words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
         return {
           customerName: formatted,
@@ -418,7 +405,7 @@ export function extractItems(text, customerName = '') {
     const itemPattern = lower.match(/(?:\d+|sau|hazar|rupaye)\s*(?:ka|ki|ke)?\s+([a-zA-Z\u0900-\u097F\s]{3,20}?)\s+(?:udhaar|udhar|diya|di|liya)/i);
     if (itemPattern && itemPattern[1]) {
       const customItem = itemPattern[1].trim();
-      if (!/(?:rupaye|paise|rs|aaj|kal)/i.test(customItem)) {
+      if (!/(?:rupaye|paise|rs|aaj|kal|phone\s*pe|phonepe|gpay|paytm|upi|cash|online)/i.test(customItem)) {
         detected.push(customItem);
       }
     }
@@ -434,7 +421,7 @@ export function extractPaymentMethod(text) {
   if (!text) return 'Cash';
   const lower = text.toLowerCase();
 
-  if (/\b(upi|phonepe|gpay|google pay|paytm|bhim|scanner|online)\b/i.test(lower)) {
+  if (/\b(upi|phonepe|phone\s*pe|gpay|google\s*pay|paytm|bhim|scanner|online)\b/i.test(lower)) {
     return 'UPI';
   }
   if (/\b(cheque|check)\b/i.test(lower)) {

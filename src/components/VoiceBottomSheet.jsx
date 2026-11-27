@@ -182,72 +182,34 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
       };
 
       recognition.onresult = (event) => {
-        let currentFinal = '';
-        let currentInterim = '';
-        let bestAlternativeText = '';
-        let bestAlternativeScore = -1;
+        let fullTranscript = '';
+        let interimTranscript = '';
 
         for (let i = 0; i < event.results.length; i++) {
           const res = event.results[i];
           if (res.isFinal) {
-            currentFinal += res[0].transcript + ' ';
+            fullTranscript += res[0].transcript + ' ';
           } else {
-            currentInterim += res[0].transcript;
-          }
-
-          // Evaluate speech alternatives (critical for fast speech where alternative 1/2 is cleaner)
-          for (let a = 0; a < res.length; a++) {
-            const alt = res[a].transcript;
-            if (alt) {
-              const testParsed = parseVoiceInput(alt, customers);
-              let score = 0;
-              if (testParsed.amount > 0) score += 50;
-              if (testParsed.matchedKnownCustomer) score += 40;
-              else if (testParsed.customerName && testParsed.customerName !== 'Customer') score += 35;
-              if (testParsed.intent === 'credit' || testParsed.intent === 'payment') score += 20;
-              if (testParsed.items && testParsed.items.length > 0) score += 10;
-              if (res[a].confidence) score += Math.round(res[a].confidence * 15);
-
-              if (score > bestAlternativeScore) {
-                bestAlternativeScore = score;
-                bestAlternativeText = alt;
-              }
-            }
+            interimTranscript += res[0].transcript;
           }
         }
 
-        const candidateText = (bestAlternativeScore >= 50 && bestAlternativeText)
-          ? bestAlternativeText
-          : (currentFinal + currentInterim);
-
-        // Combine previously accumulated text (if browser restarted) with new text
-        const recognized = ((accumulatedTextRef.current ? accumulatedTextRef.current + ' ' : '') + candidateText).trim();
+        const recognized = (fullTranscript + interimTranscript).trim();
 
         if (recognized) {
           latestSpeechRef.current = recognized;
           setInterimText(recognized);
           setTranscript(recognized);
-          setMicStatusText('सुन रहे हैं... रुकने पर 3.5 सेकंड में अपने आप दर्ज होगा');
 
           // Real-time AI extraction preview
-          let isComplete = false;
           try {
             const live = parseVoiceInput(recognized, customers);
             setLiveParsedPreview(live);
-            isComplete = live && (live.amount > 0 || live.intent === 'balance_query');
           } catch (e) {}
 
-          if (isComplete) {
-            setMicStatusText('पहचान पूरी हुई... रुकने पर 3.2s में स्वतः दर्ज होगा');
-          } else {
-            setMicStatusText('सुन रहे हैं... आराम से बोलें (5.5s इंतज़ार)');
-          }
+          setMicStatusText('सुन रहे हैं... रुकने पर स्वतः दर्ज होगा');
 
-          // Adaptive silence timer:
-          // If transaction is complete (amount > 0 or balance query): wait 3.2s
-          // If transaction is incomplete (slow speaker pausing between words): wait 5.5s of patience!
-          const silenceDuration = isComplete ? 3200 : 5500;
-
+          // Reset silence timer: 2.5 seconds of silence completes smoothly
           if (silenceTimerRef.current) {
             clearTimeout(silenceTimerRef.current);
           }
@@ -256,20 +218,13 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
               setMicStatusText('पहचान पूरी हुई, प्रोसेस हो रहा है...');
               handleStopListening(true);
             }
-          }, silenceDuration);
+          }, 2500);
         }
       };
 
       recognition.onspeechend = () => {
-        // Do NOT abort or close! Web Speech fires this on pauses.
-        // We let the continuous engine and adaptive silenceTimerRef handle graceful completion.
         if (latestSpeechRef.current) {
-          const live = parseVoiceInput(latestSpeechRef.current, customers);
-          if (live && (live.amount > 0 || live.intent === 'balance_query')) {
-            setMicStatusText('पहचान पूरी हुई... (रुकने पर 3.2s में दर्ज होगा या तुरंत बटन दबाएं)');
-          } else {
-            setMicStatusText('सुन रहे हैं... आराम से पूरा बोलें, हम इंतज़ार कर रहे हैं');
-          }
+          setMicStatusText('आवाज़ रुक गई... रुकने पर दर्ज होगा या तुरंत बटन दबाएं');
         }
       };
 
@@ -316,11 +271,7 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
         }
 
         // If Chrome disconnected on its own during an active continuous session:
-        // Save what was spoken so far and seamlessly restart
         if (sessionActiveRef.current && isOpen) {
-          if (latestSpeechRef.current) {
-            accumulatedTextRef.current = latestSpeechRef.current;
-          }
           try {
             recognition.start();
             return;
@@ -336,7 +287,7 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
           playMicStopSound();
         }
 
-        const textToProcess = (latestSpeechRef.current || accumulatedTextRef.current || '').trim();
+        const textToProcess = (latestSpeechRef.current || '').trim();
         if (textToProcess && textToProcess.length > 2) {
           processCommand(textToProcess);
         }
@@ -389,7 +340,7 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
       playMicStopSound();
     }
 
-    const textToProcess = (latestSpeechRef.current || accumulatedTextRef.current || '').trim();
+    const textToProcess = (latestSpeechRef.current || '').trim();
     if (textToProcess && textToProcess.length > 2) {
       processCommand(textToProcess);
     } else {
