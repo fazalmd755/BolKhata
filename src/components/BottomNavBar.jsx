@@ -82,10 +82,8 @@ export default function BottomNavBar({ activeTab, setActiveTab, onOpenVoiceSheet
         </button>
       </div>
 
-      {/* Android Home indicator bar at bottom */}
-      <div className="w-full flex justify-center pb-1 pt-0.5">
-        <div className="w-28 h-1 bg-slate-300 rounded-full"></div>
-      </div>
+      {/* Safe Area spacing */}
+      <div className="w-full pb-1"></div>
     </div>
   );
 }

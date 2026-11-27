@@ -54,9 +54,9 @@ function MobileAppLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-950 sm:py-6 sm:px-4 flex flex-col items-center justify-center font-sans select-none antialiased">
+    <div className="min-h-screen bg-slate-50 sm:bg-slate-950 sm:py-6 sm:px-4 flex flex-col items-center justify-center font-sans select-none antialiased">
       {/* Desktop Helper Bar */}
-      <div className="hidden sm:flex items-center justify-between w-full max-w-[440px] mb-2 px-2 text-xs">
+      <div className={`hidden sm:flex items-center justify-between w-full ${isFullWidthOnDesktop ? 'max-w-3xl' : 'max-w-md'} mb-2.5 px-2 text-xs transition-all duration-300`}>
         <button
           onClick={() => setIsPhoneModalOpen(true)}
           className="flex items-center gap-1.5 font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-full transition"
@@ -68,32 +68,34 @@ function MobileAppLayout() {
         <button
           onClick={() => setIsFullWidthOnDesktop(prev => !prev)}
           className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-white transition"
-          title="Toggle Full Width or Phone Frame"
+          title="Toggle Full Width or Standard Layout"
         >
           {isFullWidthOnDesktop ? (
             <>
               <Minimize2 className="w-3 h-3" />
-              <span>Phone Frame</span>
+              <span>Standard View</span>
             </>
           ) : (
             <>
               <Maximize2 className="w-3 h-3" />
-              <span>Full Screen</span>
+              <span>Full Screen View</span>
             </>
           )}
         </button>
       </div>
 
-      {/* Main Smartphone Shell Device Container */}
-      <div className={`w-full bg-slate-50 flex flex-col overflow-hidden relative shadow-2xl transition-all duration-300 ${
+      {/* Main Responsive Web Application Shell */}
+      <div className={`w-full bg-slate-50 flex flex-col overflow-hidden relative transition-all duration-300 ${
         isFullWidthOnDesktop 
-          ? 'max-w-2xl sm:rounded-3xl min-h-screen sm:min-h-[90vh] sm:border-4 sm:border-slate-800' 
-          : 'max-w-[420px] sm:rounded-[40px] sm:border-[8px] sm:border-slate-800 h-screen sm:h-[860px]'
+          ? 'max-w-3xl sm:rounded-3xl min-h-screen sm:min-h-[90vh] sm:border sm:border-slate-800 sm:shadow-2xl' 
+          : 'max-w-md sm:rounded-3xl sm:border sm:border-slate-800 sm:shadow-2xl h-screen sm:h-[880px]'
       }`}>
-        {/* Android Native Status Bar */}
-        <AndroidStatusBar />
+        {/* Desktop-only simulated top status bar */}
+        <div className="hidden sm:block">
+          {!isFullWidthOnDesktop && <AndroidStatusBar />}
+        </div>
 
-        {/* Mobile App Bar */}
+        {/* Top App Header */}
         <MobileHeader 
           onOpenPhoneModal={() => setIsPhoneModalOpen(true)} 
           onOpenAiAssistant={() => setIsAiAssistantOpen(true)}
