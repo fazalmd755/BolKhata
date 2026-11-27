@@ -272,6 +272,26 @@ export function KhataProvider({ children }) {
     localStorage.removeItem(`${STORAGE_KEY}_settings`);
   };
 
+  /**
+   * Restore full store from backup JSON
+   */
+  const restoreBackupData = (backupData) => {
+    try {
+      if (backupData.customers && Array.isArray(backupData.customers)) {
+        setCustomers(backupData.customers);
+      }
+      if (backupData.transactions && Array.isArray(backupData.transactions)) {
+        setTransactions(backupData.transactions);
+      }
+      if (backupData.shopSettings) {
+        setShopSettings(backupData.shopSettings);
+      }
+      return { success: true };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  };
+
   // Quick stats calculation
   const totalPendingUdhaar = customers.reduce((sum, c) => sum + (c.balance > 0 ? c.balance : 0), 0);
   
@@ -332,6 +352,7 @@ export function KhataProvider({ children }) {
       addNewCustomer,
       addTransaction,
       resetToDemoData,
+      restoreBackupData,
     }}>
       {children}
     </KhataContext.Provider>
