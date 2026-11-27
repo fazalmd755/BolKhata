@@ -45,11 +45,49 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
 
   const recognitionRef = useRef(null);
   const latestSpeechRef = useRef('');
+  const isListeningRef = useRef(false);
+  const manualStopRef = useRef(false);
+  const silenceTimerRef = useRef(null);
+  const maxSessionTimerRef = useRef(null);
+  const accumulatedTextRef = useRef('');
+  const sessionActiveRef = useRef(false);
 
-  // Clean up when modal closes
+  // Stop everything safely without saving/triggering
+  const stopAllListening = () => {
+    manualStopRef.current = true;
+    sessionActiveRef.current = false;
+    isListeningRef.current = false;
+    setIsListening(false);
+
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (maxSessionTimerRef.current) {
+      clearTimeout(maxSessionTimerRef.current);
+      maxSessionTimerRef.current = null;
+    }
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.abort();
+      } catch (e) {}
+    }
+  };
+
+  // Clean up when modal closes, or auto-start when opened
   useEffect(() => {
-    if (!isOpen) {
-      handleStopListening();
+    if (isOpen) {
+      // Auto-start listening on open after small animation delay
+      const timer = setTimeout(() => {
+        handleStartListening();
+      }, 200);
+      return () => {
+        clearTimeout(timer);
+        stopAllListening();
+      };
+    } else {
+      stopAllListening();
       setTranscript('');
       setInterimText('');
       setErrorMessage('');
@@ -63,7 +101,16 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
     setTranscript('');
     setInterimText('');
     latestSpeechRef.current = '';
-    setMicStatusText('माइक्रोफ़ोन शुरू हो रहा है...');
+    accumulatedTextRef.current = '';
+    manualStopRef.current = false;
+    sessionActiveRef.current = true;
+    isListeningRef.current = true;
+    setIsListening(true);
+    setMicStatusText('माइक शुरू हो रहा है... लंबा सत्र सक्रिय (45s)');
+
+    // Clear any active timers
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    if (maxSessionTimerRef.current) clearTimeout(maxSessionTimerRef.current);
 
     // 1. Explicitly check / prompt browser permission via getUserMedia
     // Then immediately RELEASE the track so it doesn't lock the audio device!
@@ -76,6 +123,9 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
         if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
           setErrorMessage('Microphone Blocked! ब्राउज़र के URL बार में 🔒 लॉक या सेटिंग्स में जाकर Microphone को "Allow" करें।');
           setShowTextInput(true);
+          isListeningRef.current = false;
+          setIsListening(false);
+          sessionActiveRef.current = false;
           return;
         }
       }
@@ -85,7 +135,10 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
 
     if (!SpeechRecognition) {
       setShowTextInput(true);
-      setErrorMessage('इस ब्राउज़र में SpeechRecognition API उपलब्ध नहीं है। नीचे टाइप करें या सैंपल बटन दबाएं।');
+      setErrorMessage('इस ब्राउज़र में SpeechRecognition API उपलब्ध नहीं है। नीचे टाइप करें या 1-क्लिक टेस्ट चिप्स दबाएं।');
+      isListeningRef.current = false;
+      setIsListening(false);
+      sessionActiveRef.current = false;
       return;
     }
 
@@ -96,12 +149,12 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
 
       const recognition = new SpeechRecognition();
       recognition.lang = language;
-      recognition.continuous = false; // standard single-shot recognition prevents audio lockups
+      recognition.continuous = true; // EXTENDED CONTINUOUS SESSION: Does not cut off during natural pauses!
       recognition.interimResults = true;
       recognition.maxAlternatives = 3;
 
       recognition.onaudiostart = () => {
-        setMicStatusText('माइक चालू है... अब बोलिए (Listening...)');
+        setMicStatusText('माइक चालू है... आराम से बोलें (Listening...)');
       };
 
       recognition.onsoundstart = () => {
@@ -109,123 +162,202 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
       };
 
       recognition.onspeechstart = () => {
-        setMicStatusText('बोलना जारी रखें... (Speech detected)');
+        setMicStatusText('सुन रहे हैं... बोलना जारी रखें');
+        // Clear silence timer while user is speaking
+        if (silenceTimerRef.current) {
+          clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = null;
+        }
       };
 
       recognition.onstart = () => {
         setIsListening(true);
+        isListeningRef.current = true;
+        setMicStatusText('माइक चालू है... आराम से बोलें (45s तक)');
         if (shopSettings.soundEnabled) {
           playMicStartSound();
         }
       };
 
       recognition.onresult = (event) => {
-        let fullTranscript = '';
-        let interim = '';
-        let bestText = '';
+        let currentFinal = '';
+        let currentInterim = '';
 
         for (let i = 0; i < event.results.length; i++) {
           const res = event.results[i];
           if (res.isFinal) {
-            fullTranscript += res[0].transcript;
+            currentFinal += res[0].transcript + ' ';
           } else {
-            interim += res[0].transcript;
-          }
-
-          // Check speech alternatives if available
-          for (let a = 0; a < res.length; a++) {
-            const alt = res[a].transcript;
-            if (alt) {
-              const testParsed = parseVoiceInput(alt, customers);
-              if (testParsed.amount > 0 || testParsed.matchedKnownCustomer) {
-                bestText = alt;
-              }
-            }
+            currentInterim += res[0].transcript;
           }
         }
 
-        const recognized = (bestText || fullTranscript || interim || '').trim();
+        // Combine previously accumulated text (if browser restarted) with new text
+        const recognized = ((accumulatedTextRef.current ? accumulatedTextRef.current + ' ' : '') + currentFinal + currentInterim).trim();
+
         if (recognized) {
           latestSpeechRef.current = recognized;
           setInterimText(recognized);
           setTranscript(recognized);
-          setMicStatusText('पहचाना गया: ' + recognized);
+          setMicStatusText('सुन रहे हैं... रुकने पर 3.5 सेकंड में अपने आप दर्ज होगा');
 
           // Real-time AI extraction preview
           try {
             const live = parseVoiceInput(recognized, customers);
             setLiveParsedPreview(live);
           } catch (e) {}
+
+          // Reset silence timer:
+          // Wait 3.5 seconds of silence AFTER speech before finalizing
+          // This gives shopkeepers plenty of time to pause, think or breathe
+          if (silenceTimerRef.current) {
+            clearTimeout(silenceTimerRef.current);
+          }
+          silenceTimerRef.current = setTimeout(() => {
+            if (isListeningRef.current && sessionActiveRef.current) {
+              setMicStatusText('पहचान पूरी हुई, प्रोसेस हो रहा है...');
+              handleStopListening(true);
+            }
+          }, 3500);
         }
       };
 
       recognition.onspeechend = () => {
-        setMicStatusText('आवाज़ रुक गई, प्रोसेस हो रहा है...');
+        // Do NOT abort or close! Web Speech fires this on pauses.
+        // We let the continuous engine and silenceTimerRef handle graceful completion.
+        if (latestSpeechRef.current) {
+          setMicStatusText('सुन रहे हैं... रुकने पर 3.5 सेकंड में दर्ज होगा');
+        }
       };
 
       recognition.onerror = (event) => {
         console.warn('SpeechRecognition error:', event.error);
+        if (event.error === 'no-speech') {
+          // In continuous mode, no-speech is normal during pauses; keep listening!
+          if (!latestSpeechRef.current) {
+            setMicStatusText('आवाज़ का इंतज़ार है... आराम से बोलें');
+          }
+          return;
+        }
+
         if (event.error === 'not-allowed') {
           setIsListening(false);
+          isListeningRef.current = false;
+          sessionActiveRef.current = false;
           setErrorMessage('माइक्रोफ़ोन अनुमति नहीं मिली (Microphone Blocked). कृपया ब्राउज़र में 🔒 लॉक पर क्लिक कर Microphone को Allow करें।');
           setShowTextInput(true);
         } else if (event.error === 'network') {
           setIsListening(false);
-          setErrorMessage('Google Speech API नेटवर्क उपलब्ध नहीं है। कृपया नीचे दिए गए बॉक्स में लिखें या सैंपल चिप्स का उपयोग करें।');
+          isListeningRef.current = false;
+          sessionActiveRef.current = false;
+          setErrorMessage('Google Speech API नेटवर्क उपलब्ध नहीं है। कृपया नीचे दिए गए बॉक्स में लिखें या 1-क्लिक टेस्ट चिप्स का उपयोग करें।');
           setShowTextInput(true);
-        } else if (event.error === 'no-speech') {
-          setMicStatusText('कोई आवाज़ सुनाई नहीं दी। कृपया माइक दबाकर दोबारा बोलें।');
-          setIsListening(false);
+        } else if (event.error === 'aborted') {
+          // Quietly handled
         } else {
-          setErrorMessage(`Mic status: ${event.error}`);
+          setErrorMessage(`माइक स्थिति: ${event.error}`);
           setIsListening(false);
+          isListeningRef.current = false;
         }
       };
 
       recognition.onend = () => {
+        // If manual stop or timer-based stop was executed
+        if (manualStopRef.current || !sessionActiveRef.current || !isListeningRef.current) {
+          setIsListening(false);
+          isListeningRef.current = false;
+          if (shopSettings.soundEnabled) {
+            playMicStopSound();
+          }
+          return;
+        }
+
+        // If Chrome disconnected on its own during an active continuous session:
+        // Save what was spoken so far and seamlessly restart
+        if (sessionActiveRef.current && isOpen) {
+          if (latestSpeechRef.current) {
+            accumulatedTextRef.current = latestSpeechRef.current;
+          }
+          try {
+            recognition.start();
+            return;
+          } catch (e) {
+            console.warn('Recognition auto-restart caught:', e);
+          }
+        }
+
+        // Final fallback if restart fails
         setIsListening(false);
+        isListeningRef.current = false;
         if (shopSettings.soundEnabled) {
           playMicStopSound();
         }
 
-        // If speech was captured, process it automatically!
-        const textToProcess = latestSpeechRef.current;
-        if (textToProcess && textToProcess.trim().length > 2) {
+        const textToProcess = (latestSpeechRef.current || accumulatedTextRef.current || '').trim();
+        if (textToProcess && textToProcess.length > 2) {
           processCommand(textToProcess);
         }
       };
 
+      // Maximum 45 seconds continuous session guard
+      maxSessionTimerRef.current = setTimeout(() => {
+        if (isListeningRef.current && sessionActiveRef.current) {
+          setMicStatusText('सत्र समय सीमा पूरी (45s), दर्ज हो रहा है...');
+          handleStopListening(true);
+        }
+      }, 45000);
+
       recognitionRef.current = recognition;
       recognition.start();
       setIsListening(true);
+      isListeningRef.current = true;
     } catch (err) {
       console.error('Failed to start recognition:', err);
       setIsListening(false);
+      isListeningRef.current = false;
+      sessionActiveRef.current = false;
       setErrorMessage('माइक चालू नहीं हो सका। कृपया नीचे दिए गए बॉक्स में टाइप करें।');
       setShowTextInput(true);
     }
   };
 
-  const handleStopListening = () => {
+  const handleStopListening = (autoTriggered = false) => {
+    manualStopRef.current = true;
+    sessionActiveRef.current = false;
+    isListeningRef.current = false;
+    setIsListening(false);
+
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (maxSessionTimerRef.current) {
+      clearTimeout(maxSessionTimerRef.current);
+      maxSessionTimerRef.current = null;
+    }
+
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
       } catch (e) {}
     }
-    setIsListening(false);
 
-    if (latestSpeechRef.current && latestSpeechRef.current.trim().length > 2) {
-      processCommand(latestSpeechRef.current);
+    if (shopSettings.soundEnabled) {
+      playMicStopSound();
+    }
+
+    const textToProcess = (latestSpeechRef.current || accumulatedTextRef.current || '').trim();
+    if (textToProcess && textToProcess.length > 2) {
+      processCommand(textToProcess);
+    } else {
+      setMicStatusText('माइक बंद हुआ। बोलकर दर्ज करने के लिए माइक दबाएं।');
     }
   };
 
   const processCommand = (text) => {
     if (!text || !text.trim()) return;
     setIsProcessing(true);
-    if (recognitionRef.current) {
-      try { recognitionRef.current.abort(); } catch (e) {}
-    }
-    setIsListening(false);
+    stopAllListening();
     onClose(); // Close sheet
 
     try {
@@ -354,8 +486,13 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
               <Sparkles className="w-4 h-4 text-emerald-600" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900">BolKhata AI Voice</h3>
-              <p className="text-[11px] text-slate-500">हिंदी / हिंग्लिश में बोलें</p>
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-sm font-bold text-slate-900">BolKhata AI Voice</h3>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  लंबा सत्र (45s)
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500">रुक-रुक कर आराम से बोलें, कट नहीं होगा</p>
             </div>
           </div>
 
@@ -456,13 +593,18 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
 
           {/* Complete / Submit Action Button if text was spoken */}
           {(interimText || transcript) && (
-            <button
-              onClick={() => processCommand(latestSpeechRef.current || interimText || transcript)}
-              className="mt-3 px-5 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition animate-in zoom-in-95"
-            >
-              <Check className="w-4 h-4" />
-              <span>खाता दर्ज करें (Confirm & Save)</span>
-            </button>
+            <div className="mt-3 flex flex-col items-center gap-1">
+              <button
+                onClick={() => handleStopListening(true)}
+                className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition active:scale-95 animate-in zoom-in-95 cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                <span>खाता दर्ज करें (हो गया / Done)</span>
+              </button>
+              <span className="text-[10px] text-slate-500 font-medium">
+                💡 या 3.5s शांत रहें, अपने आप दर्ज हो जाएगा
+              </span>
+            </div>
           )}
         </div>
 

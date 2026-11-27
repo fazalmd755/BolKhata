@@ -55,6 +55,19 @@ export default function AiAssistantModal({ isOpen, onClose }) {
 
   const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const silenceTimerRef = useRef(null);
+  const latestSpokenRef = useRef('');
+
+  // Clean up mic when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      if (recognitionRef.current) {
+        try { recognitionRef.current.abort(); } catch (e) {}
+      }
+      setIsListening(false);
+    }
+  }, [isOpen]);
 
   const playSpeech = (text) => {
     if (!text) return;
@@ -132,16 +145,22 @@ export default function AiAssistantModal({ isOpen, onClose }) {
     }
 
     if (isListening && recognitionRef.current) {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
       try { recognitionRef.current.stop(); } catch (e) {}
       setIsListening(false);
+      const query = latestSpokenRef.current.trim();
+      if (query) {
+        handleSend(query);
+      }
       return;
     }
 
     try {
       const recognition = new SpeechRecognition();
       recognition.lang = 'hi-IN';
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      latestSpokenRef.current = '';
 
       recognition.onstart = () => {
         setIsListening(true);
@@ -149,15 +168,37 @@ export default function AiAssistantModal({ isOpen, onClose }) {
       };
 
       recognition.onresult = (event) => {
-        const spoken = event.results[0][0].transcript;
+        let finalStr = '';
+        let interimStr = '';
+        for (let i = 0; i < event.results.length; i++) {
+          if (event.results[i].isFinal) finalStr += event.results[i][0].transcript + ' ';
+          else interimStr += event.results[i][0].transcript;
+        }
+        const spoken = (finalStr + interimStr).trim();
         if (spoken) {
-          handleSend(spoken);
+          latestSpokenRef.current = spoken;
+          setInputText(spoken);
+
+          // Reset silence timer - wait 3.0s after speech before auto-sending
+          if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+          silenceTimerRef.current = setTimeout(() => {
+            if (recognitionRef.current) {
+              try { recognitionRef.current.stop(); } catch (e) {}
+            }
+            setIsListening(false);
+            if (latestSpokenRef.current.trim()) {
+              handleSend(latestSpokenRef.current.trim());
+              latestSpokenRef.current = '';
+            }
+          }, 3000);
         }
       };
 
       recognition.onerror = (event) => {
-        setIsListening(false);
-        console.warn('AI Mic error:', event.error);
+        if (event.error !== 'no-speech') {
+          setIsListening(false);
+          console.warn('AI Mic error:', event.error);
+        }
       };
 
       recognition.onend = () => {
