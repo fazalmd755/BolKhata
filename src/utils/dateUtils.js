@@ -81,6 +81,28 @@ export function parseRelativeDate(text, intent = 'credit') {
     }
   }
 
+  // "15 tareekh ko", "15 tarikh", "15 तारीख", "15th"
+  const dateOfMonthMatch = lower.match(/(\d{1,2})\s*(?:tareekh|tarikh|taarikh|तारीख|date|th|st|nd|rd)\s*(?:ko|tak|को|तक)?/i);
+  if (dateOfMonthMatch) {
+    const targetDay = parseInt(dateOfMonthMatch[1], 10);
+    if (targetDay >= 1 && targetDay <= 31) {
+      const d = new Date(now);
+      if (d.getDate() > targetDay) {
+        // Target date already passed this month, move to next month
+        d.setMonth(d.getMonth() + 1);
+      }
+      d.setDate(targetDay);
+      return formatDateISO(d);
+    }
+  }
+
+  // "agle mahine" / "next month"
+  if (/\b(agle mahine|next month|अगले महीने)\b/i.test(lower)) {
+    const d = new Date(now);
+    d.setMonth(d.getMonth() + 1);
+    return formatDateISO(d);
+  }
+
   // Default fallback for credit: 7 days due date
   if (intent === 'credit') {
     const d = new Date(now);

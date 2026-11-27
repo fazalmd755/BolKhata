@@ -23,6 +23,7 @@ import {
 import { useKhata } from '../context/KhataContext';
 import { processConversationalQuery } from '../utils/aiConversationalEngine';
 import { speakText, playMicStartSound, playMicStopSound, playSuccessChime } from '../utils/soundEffects';
+import { useSpeechInput } from '../hooks/useSpeechInput';
 import confetti from 'canvas-confetti';
 
 export default function AiAssistantModal({ isOpen, onClose }) {
@@ -48,26 +49,43 @@ export default function AiAssistantModal({ isOpen, onClose }) {
   ]);
 
   const [inputText, setInputText] = useState('');
-  const [isListening, setIsListening] = useState(false);
   const [speakBackEnabled, setSpeakBackEnabled] = useState(true);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
 
-  const recognitionRef = useRef(null);
   const messagesEndRef = useRef(null);
-  const silenceTimerRef = useRef(null);
-  const latestSpokenRef = useRef('');
 
-  // Clean up mic when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-      if (recognitionRef.current) {
-        try { recognitionRef.current.abort(); } catch (e) {}
+  const {
+    isListening,
+    transcript: speechTranscript,
+    interimText: speechInterim,
+    toggleListening: handleVoiceInput,
+    stopListening,
+    errorMessage: speechError
+  } = useSpeechInput({
+    initialLanguage: 'hi-IN',
+    silenceTimeoutMs: 2500,
+    onResult: (spokenText) => {
+      if (spokenText) {
+        handleSend(spokenText);
       }
-      setIsListening(false);
     }
-  }, [isOpen]);
+  });
+
+  // Stop listening when modal closes
+  useEffect(() => {
+    if (!isOpen && isListening) {
+      stopListening();
+    }
+  }, [isOpen, isListening, stopListening]);
+
+  // Sync spoken text into input field preview
+  useEffect(() => {
+    const live = (speechTranscript + ' ' + speechInterim).trim();
+    if (live && isListening) {
+      setInputText(live);
+    }
+  }, [speechTranscript, speechInterim, isListening]);
 
   const playSpeech = (text) => {
     if (!text) return;
@@ -135,83 +153,6 @@ export default function AiAssistantModal({ isOpen, onClose }) {
         playSpeech(response.speechText);
       }
     }, 80);
-  };
-
-  const handleVoiceInput = () => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert('SpeechRecognition not supported in this browser. Please type your query.');
-      return;
-    }
-
-    if (isListening && recognitionRef.current) {
-      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-      try { recognitionRef.current.stop(); } catch (e) {}
-      setIsListening(false);
-      const query = latestSpokenRef.current.trim();
-      if (query) {
-        handleSend(query);
-      }
-      return;
-    }
-
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'hi-IN';
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      latestSpokenRef.current = '';
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        if (shopSettings.soundEnabled) playMicStartSound();
-      };
-
-      recognition.onresult = (event) => {
-        let finalStr = '';
-        let interimStr = '';
-        for (let i = 0; i < event.results.length; i++) {
-          if (event.results[i].isFinal) finalStr += event.results[i][0].transcript + ' ';
-          else interimStr += event.results[i][0].transcript;
-        }
-        const spoken = (finalStr + interimStr).trim();
-        if (spoken) {
-          latestSpokenRef.current = spoken;
-          setInputText(spoken);
-
-          // Reset silence timer - wait 3.0s after speech before auto-sending
-          if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-          silenceTimerRef.current = setTimeout(() => {
-            if (recognitionRef.current) {
-              try { recognitionRef.current.stop(); } catch (e) {}
-            }
-            setIsListening(false);
-            if (latestSpokenRef.current.trim()) {
-              handleSend(latestSpokenRef.current.trim());
-              latestSpokenRef.current = '';
-            }
-          }, 3000);
-        }
-      };
-
-      recognition.onerror = (event) => {
-        if (event.error !== 'no-speech') {
-          setIsListening(false);
-          console.warn('AI Mic error:', event.error);
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-        if (shopSettings.soundEnabled) playMicStopSound();
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
-    } catch (e) {
-      console.error('Failed to start AI mic:', e);
-      setIsListening(false);
-    }
   };
 
   const handleAddNewCustomerDirectly = (msgId, name, phone) => {

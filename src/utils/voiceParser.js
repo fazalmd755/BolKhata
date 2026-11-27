@@ -83,41 +83,69 @@ export function normalizeText(text) {
 }
 
 /**
- * Extracts numeric amount from Hindi / Hinglish / English voice transcription
+ * Extracts all numeric amounts from Hindi / Hinglish / English voice transcription
  */
 export function extractAmount(text) {
-  if (!text) return { amount: null, rawMatch: null };
+  if (!text) return { amount: null, rawMatch: null, allAmounts: [] };
   const num = parseHindiSpokenNumber(text);
+  const all = extractAllAmounts(text);
   if (num && num > 0) {
-    return { amount: num, rawMatch: String(num) };
+    return { amount: num, rawMatch: String(num), allAmounts: all };
   }
-  return { amount: null, rawMatch: null };
+  return { amount: null, rawMatch: null, allAmounts: all };
 }
 
 /**
- * Known Hindi Devanagari to English phonetic mapping for common customer names
+ * Detects multiple distinct amounts in a single spoken sentence (B3)
+ * e.g. "Ramesh 500 udhaar aur 200 jama" -> [500, 200]
  */
-const HINDI_NAME_MAP = {
-  'सुरेश': 'Suresh Sharma',
-  'सुरेश शर्मा': 'Suresh Sharma',
-  'रमेश': 'Ramesh Kirana',
-  'रमेश किराना': 'Ramesh Kirana',
-  'रमेश भाई': 'Ramesh Kirana',
-  'मोहन': 'Mohan Lal',
-  'मोहन लाल': 'Mohan Lal',
-  'अनिता': 'Anita Devi',
-  'अनीता': 'Anita Devi',
-  'राजेश': 'Rajesh Verma',
-  'विक्रम': 'Vikram Singh',
-  'पूजा': 'Pooja Ji',
-};
+export function extractAllAmounts(text) {
+  if (!text) return [];
+  const amounts = [];
+  const regex = /(?:₹|rs\.?|inr|रू|रुपये|रुपए|रुपया)?\s*(\b\d{2,7}\b)\s*(?:₹|rs\.?|inr|\/-|रू|रुपये|रुपए|रुपया)?/gi;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const val = parseInt(match[1], 10);
+    // Ignore 10-digit phone numbers
+    if (val >= 10 && String(val).length !== 10 && !amounts.includes(val)) {
+      amounts.push(val);
+    }
+  }
+  return amounts;
+}
 
 /**
  * Determines intent: 'credit', 'payment', or 'balance_query'
+ * Handles negative phrases ("nahi diya", "wapas kiya", "cancel") (B3)
  */
 export function classifyIntent(text) {
   if (!text) return { intent: 'unknown', confidence: 0, typeLabel: 'Unknown' };
   const lower = text.toLowerCase();
+
+  // 0. Negative Phrases Check (B3)
+  // e.g. "nahi diya", "paise nahi diye", "wapas kiya", "cancel kiya"
+  const isNegative = 
+    /\b(nahi\s+diya|nahi\s+diye|paise\s+nahi|paisa\s+nahi|payment\s+nahi|nahi\s+aaye|nahi\s+aaya|nahi\s+mila|wapas\s+kiya|cancel\s+kiya|cancel\s+karo|cancel)\b/i.test(lower) ||
+    /(?:नहीं\s*दिए|नहीं\s*दिया|पैसे\s*नहीं|पेमेंट\s*नहीं|नहीं\s*आए|नहीं\s*आया|नहीं\s*मिला|वापस\s*किया|कैंसिल|रद्द)/.test(lower);
+
+  if (isNegative) {
+    if (/\b(cancel|कैंसिल|रद्द)\b/i.test(lower)) {
+      return {
+        intent: 'cancel',
+        isNegative: true,
+        confidence: 0.65,
+        typeLabel: 'Cancel / Reversal (रद्द / निरस्तीकरण)',
+        warning: 'कैंसिल या निरस्तीकरण का अनुरोध मिला है। पुष्टि करें।'
+      };
+    }
+    return {
+      intent: 'credit', // Money was NOT paid, remains credit / pending
+      isNegative: true,
+      confidence: 0.60,
+      typeLabel: 'Unpaid (भुगतान नहीं मिला)',
+      warning: 'ग्राहक ने पैसे नहीं दिए हैं (Payment was NOT received)'
+    };
+  }
 
   // 1. Balance Query Check:
   // e.g. "kitna udhaar baaki hai", "kitna baaki hai", "balance batao", "kitna paisa lena hai", "hisaab batao", "kitna hua"
@@ -363,14 +391,28 @@ export function parseVoiceInput(transcript, knownCustomers = []) {
   }
 
   const isNewCust = Boolean(!customerResult.matchedKnown && customerResult.customerName && customerResult.customerName !== 'Customer');
+  const allAmounts = amountResult.allAmounts || [];
+  const hasMultipleAmounts = allAmounts.length > 1;
+
+  let confidence = intentResult.confidence;
+  let warningMessage = intentResult.warning || '';
+
+  if (hasMultipleAmounts) {
+    confidence = Math.min(confidence, 0.60);
+    warningMessage = `एक से अधिक राशियां पाई गईं (${allAmounts.join('₹, ')}₹)। कृपया सही राशि चुनें।`;
+  }
 
   return {
     success: true,
     rawTranscript: transcript,
     normalizedText: clean,
-    intent: intentResult.intent, // 'credit' | 'payment' | 'balance_query'
+    intent: intentResult.intent, // 'credit' | 'payment' | 'balance_query' | 'cancel'
     typeLabel: intentResult.typeLabel,
-    confidence: intentResult.confidence,
+    confidence,
+    isNegative: Boolean(intentResult.isNegative),
+    hasMultipleAmounts,
+    allAmounts,
+    warning: warningMessage,
     customerName: customerResult.customerName,
     matchedKnownCustomer: customerResult.matchedKnown,
     customerId: customerResult.customerId,

@@ -219,6 +219,36 @@ export default function TransactionConfirmModal() {
             </div>
           )}
 
+          {/* Voice Parser Alert or Multiple Amounts Notice (B3) */}
+          {modalPayload.warning && (
+            <div className="rounded-xl p-3 bg-amber-50 border border-amber-300 text-amber-900 text-xs flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">सावधानी (Voice Notice):</span>
+                <p className="mt-0.5">{modalPayload.warning}</p>
+                {modalPayload.allAmounts && modalPayload.allAmounts.length > 1 && (
+                  <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] font-semibold text-slate-700">राशि चुनें (Pick Amount):</span>
+                    {modalPayload.allAmounts.map(a => (
+                      <button
+                        key={a}
+                        type="button"
+                        onClick={() => setAmount(String(a))}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition ${
+                          Number(amount) === a
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-white text-slate-800 border-slate-300 hover:bg-slate-100'
+                        }`}
+                      >
+                        ₹{a}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Transaction Type Selector (Credit vs Payment) */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1.5">

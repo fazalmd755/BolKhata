@@ -161,26 +161,82 @@ export function parseHindiSpokenNumber(text) {
   if (/(?:ढाई|dhai|dhaai)\s*(?:सौ|sau|so)/.test(clean)) return 250;
   if (/(?:ढाई|dhai|dhaai)\s*(?:लाख|lakh)/.test(clean)) return 250000;
 
-  // सवा (1.25)
-  if (/(?:सवा|sawa|sawwa)\s*(?:हज़ार|हजार|hazar|hazaar)/.test(clean)) return 1250;
-  if (/(?:सवा|sawa|sawwa)\s*(?:सौ|sau|so)/.test(clean)) return 125;
+  // सवा (1.25 / N + 0.25)
+  if (/(?:सवा|sawa|sawwa)\s*(?:सौ|sau|so)/.test(clean) && !/(?:सवा|sawa|sawwa)\s+([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:सौ|sau|so)/.test(clean)) return 125;
+  if (/(?:सवा|sawa|sawwa)\s*(?:हज़ार|हजार|hazar|hazaar)/.test(clean) && !/(?:सवा|sawa|sawwa)\s+([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:हज़ार|हजार|hazar)/.test(clean)) return 1250;
+  if (/(?:सवा|sawa|sawwa)\s*(?:लाख|lakh)/.test(clean) && !/(?:सवा|sawa|sawwa)\s+([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:लाख|lakh)/.test(clean)) return 125000;
+
+  const sawaThousand = clean.match(/(?:सवा|sawa|sawwa)\s+([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:हज़ार|हजार|hazar)/i);
+  if (sawaThousand) {
+    const base = parseInt(sawaThousand[1], 10) || HINDI_WORDS_MAP[sawaThousand[1]];
+    if (base) return base * 1000 + 250;
+  }
+  const sawaHundred = clean.match(/(?:सवा|sawa|sawwa)\s+([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:सौ|sau|so)/i);
+  if (sawaHundred) {
+    const base = parseInt(sawaHundred[1], 10) || HINDI_WORDS_MAP[sawaHundred[1]];
+    if (base) return base * 100 + 25;
+  }
+
+  // पौने (0.75 / N - 0.25)
+  if (/(?:पौने|paune|pone)\s*(?:सौ|sau|so)/.test(clean) && !/(?:पौने|paune|pone)\s+([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:सौ|sau|so)/.test(clean)) return 75;
+  if (/(?:पौने|paune|pone)\s*(?:हज़ार|हजार|hazar|hazaar)/.test(clean) && !/(?:पौने|paune|pone)\s+([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:हज़ार|हजार|hazar)/.test(clean)) return 750;
+  if (/(?:पौने|paune|pone)\s*(?:लाख|lakh)/.test(clean) && !/(?:पौने|paune|pone)\s+([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:लाख|lakh)/.test(clean)) return 75000;
+
+  const pauneThousand = clean.match(/(?:पौने|paune|pone)\s+([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:हज़ार|हजार|hazar)/i);
+  if (pauneThousand) {
+    const base = parseInt(pauneThousand[1], 10) || HINDI_WORDS_MAP[pauneThousand[1]];
+    if (base) return (base - 1) * 1000 + 750;
+  }
+  const pauneHundred = clean.match(/(?:पौने|paune|pone)\s+([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:सौ|sau|so)/i);
+  if (pauneHundred) {
+    const base = parseInt(pauneHundred[1], 10) || HINDI_WORDS_MAP[pauneHundred[1]];
+    if (base) return (base - 1) * 100 + 75;
+  }
 
   // साढ़े (X.5) e.g. "साढ़े तीन हजार" -> 3500, "साढ़े चार सौ" -> 450
-  const sadheThousand = clean.match(/(?:साढ़े|sadhe|saadhe)\s+([a-zA-Z\u0900-\u097F]+)\s*(?:हज़ार|हजार|hazar)/i);
+  const sadheThousand = clean.match(/(?:साढ़े|sadhe|saadhe)\s+([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:हज़ार|हजार|hazar)/i);
   if (sadheThousand) {
-    const base = HINDI_WORDS_MAP[sadheThousand[1]];
+    const base = parseInt(sadheThousand[1], 10) || HINDI_WORDS_MAP[sadheThousand[1]];
     if (base) return base * 1000 + 500;
   }
 
-  const sadheHundred = clean.match(/(?:साढ़े|sadhe|saadhe)\s+([a-zA-Z\u0900-\u097F]+)\s*(?:सौ|sau|so)/i);
+  const sadheHundred = clean.match(/(?:साढ़े|sadhe|saadhe)\s+([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:सौ|sau|so)/i);
   if (sadheHundred) {
-    const base = HINDI_WORDS_MAP[sadheHundred[1]];
+    const base = parseInt(sadheHundred[1], 10) || HINDI_WORDS_MAP[sadheHundred[1]];
     if (base) return base * 100 + 50;
   }
 
-  // Check 4: Multi-Word Compounds (e.g. "दो हजार पांच सौ पचास" -> 2550, "चार हजार आठ सौ" -> 4800)
+  const sadheLakh = clean.match(/(?:साढ़े|sadhe|saadhe)\s+([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:लाख|lakh)/i);
+  if (sadheLakh) {
+    const base = parseInt(sadheLakh[1], 10) || HINDI_WORDS_MAP[sadheLakh[1]];
+    if (base) return base * 100000 + 50000;
+  }
+
+  // Check 4: Multi-Word Compounds (Crores, Lakhs, Thousands, Hundreds, Tens)
   let total = 0;
   let hasFoundNumber = false;
+
+  // Check crores: [N] करोड़ / crore
+  const croreRegex = /([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:करोड़|करोड|crore|cr)(?:\s|$)/i;
+  const crMatch = clean.match(croreRegex);
+  if (crMatch) {
+    const val = parseInt(crMatch[1], 10) || HINDI_WORDS_MAP[crMatch[1]];
+    if (val) {
+      total += val * 10000000;
+      hasFoundNumber = true;
+    }
+  }
+
+  // Check lakhs: [N] लाख / lakh
+  const lakhRegex = /([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:लाख|lakh|lac)(?:\s|$)/i;
+  const lkMatch = clean.match(lakhRegex);
+  if (lkMatch) {
+    const val = parseInt(lkMatch[1], 10) || HINDI_WORDS_MAP[lkMatch[1]];
+    if (val) {
+      total += val * 100000;
+      hasFoundNumber = true;
+    }
+  }
 
   // Check thousands: [N] हजार / hazar
   const thousandRegex = /([a-zA-Z\u0900-\u097F]+|\d+)\s*(?:हज़ार|हजार|hazar|hazaar|k)(?:\s|$)/i;
@@ -208,11 +264,11 @@ export function parseHindiSpokenNumber(text) {
   const words = clean.split(/\s+/);
   for (let i = 0; i < words.length; i++) {
     const word = words[i];
-    if (/(?:हज़ार|हजार|hazar|सौ|sau|so|रुपये|रुपए|रुपया|rupaye|rs|का|की|के|को|ने|से)/i.test(word)) continue;
+    if (/(?:हज़ार|हजार|hazar|सौ|sau|so|लाख|lakh|करोड़|crore|रुपये|रुपए|रुपया|rupaye|rs|का|की|के|को|ने|से)/i.test(word)) continue;
     const val = HINDI_WORDS_MAP[word];
     if (val !== undefined && val < 100 && total > 0) {
       const nextWord = words[i + 1] || '';
-      if (!/(?:हज़ार|हजार|hazar|सौ|sau|so)/i.test(nextWord)) {
+      if (!/(?:हज़ार|हजार|hazar|सौ|sau|so|लाख|lakh|करोड़|crore)/i.test(nextWord)) {
         total += val;
         break;
       }
