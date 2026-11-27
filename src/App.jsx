@@ -15,7 +15,6 @@ import BalanceQueryModal from './components/BalanceQueryModal';
 import ManualEntryModal from './components/ManualEntryModal';
 import CustomerLedgerModal from './components/CustomerLedgerModal';
 import WhatsAppReminderModal from './components/WhatsAppReminderModal';
-import SettingsModal from './components/SettingsModal';
 import { 
   Search, 
   PlusCircle, 
@@ -219,7 +218,6 @@ function MobileAppLayout() {
         <ManualEntryModal />
         <CustomerLedgerModal />
         <WhatsAppReminderModal />
-        <SettingsModal />
       </div>
     </div>
   );

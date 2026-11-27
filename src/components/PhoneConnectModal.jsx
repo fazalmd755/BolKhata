@@ -16,15 +16,21 @@ export default function PhoneConnectModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const [copiedLocal, setCopiedLocal] = useState(false);
-  const [copiedPublic, setCopiedPublic] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState('wifi'); // 'wifi' | 'https'
+  const [copiedCustom, setCopiedCustom] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState('wifi'); // 'wifi' | 'custom'
 
-  const localIpUrl = 'http://192.168.1.12:5173/';
-  const publicHttpsUrl = 'https://ready-beans-rescue.loca.lt';
-  const tunnelPassword = '182.69.176.247';
+  // Dynamic host detection from current browser window
+  const defaultHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+  const defaultPort = typeof window !== 'undefined' && window.location.port ? window.location.port : '5173';
+  const defaultProtocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
 
-  const activeUrl = selectedMethod === 'wifi' ? localIpUrl : publicHttpsUrl;
-  const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(activeUrl)}&bgcolor=ffffff&color=059669&margin=6`;
+  const [customIp, setCustomIp] = useState(defaultHost);
+  const [customUrl, setCustomUrl] = useState('');
+
+  // Auto-build local Wi-Fi URL
+  const localIpUrl = `${defaultProtocol}//${customIp || defaultHost}:${defaultPort}/`;
+  const activeUrl = selectedMethod === 'wifi' ? localIpUrl : (customUrl || localIpUrl);
+  const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(activeUrl)}&bgcolor=ffffff&color=059669&margin=6`;
 
   const copyToClipboard = (text, type) => {
     navigator.clipboard.writeText(text);
@@ -32,8 +38,8 @@ export default function PhoneConnectModal({ isOpen, onClose }) {
       setCopiedLocal(true);
       setTimeout(() => setCopiedLocal(false), 2000);
     } else {
-      setCopiedPublic(true);
-      setTimeout(() => setCopiedPublic(false), 2000);
+      setCopiedCustom(true);
+      setTimeout(() => setCopiedCustom(false), 2000);
     }
   };
 
@@ -83,15 +89,15 @@ export default function PhoneConnectModal({ isOpen, onClose }) {
             </button>
 
             <button
-              onClick={() => setSelectedMethod('https')}
+              onClick={() => setSelectedMethod('custom')}
               className={`py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 ${
-                selectedMethod === 'https' 
+                selectedMethod === 'custom' 
                   ? 'bg-white text-emerald-700 shadow-xs' 
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <ShieldCheck className="w-3.5 h-3.5" />
-              <span>HTTPS Link (With Mic)</span>
+              <span>Custom / HTTPS URL</span>
             </button>
           </div>
 
@@ -117,14 +123,24 @@ export default function PhoneConnectModal({ isOpen, onClose }) {
                   <span>Local Wi-Fi Address:</span>
                   <button
                     onClick={() => copyToClipboard(localIpUrl, 'local')}
-                    className="text-[11px] flex items-center gap-1 text-emerald-700 hover:text-emerald-900"
+                    className="text-[11px] flex items-center gap-1 text-emerald-700 hover:text-emerald-900 font-bold"
                   >
                     {copiedLocal ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                     <span>{copiedLocal ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
-                <div className="font-mono text-slate-800 text-sm font-semibold select-all break-all">
+                <div className="font-mono text-slate-800 text-sm font-semibold select-all break-all mb-2">
                   {localIpUrl}
+                </div>
+                <div className="pt-2 border-t border-emerald-200/60 flex items-center gap-2">
+                  <span className="text-[11px] text-slate-600 font-medium shrink-0">IP / Host:</span>
+                  <input
+                    type="text"
+                    value={customIp}
+                    onChange={(e) => setCustomIp(e.target.value)}
+                    placeholder="e.g. 192.168.1.15 or localhost"
+                    className="w-full bg-white px-2 py-1 rounded-lg border border-emerald-300 text-xs font-mono font-semibold text-slate-800 focus:outline-none focus:border-emerald-600"
+                  />
                 </div>
               </div>
               <p className="text-[11px] text-slate-500 text-center">
@@ -133,26 +149,27 @@ export default function PhoneConnectModal({ isOpen, onClose }) {
             </div>
           ) : (
             <div className="space-y-2 text-left">
-              <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-200 text-xs space-y-1.5">
+              <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-200 text-xs space-y-2">
                 <div className="flex items-center justify-between font-bold text-blue-900">
-                  <span>Secure HTTPS Cloud URL:</span>
+                  <span>Custom / HTTPS Tunnel URL:</span>
                   <button
-                    onClick={() => copyToClipboard(publicHttpsUrl, 'public')}
-                    className="text-[11px] flex items-center gap-1 text-blue-700 hover:text-blue-900"
+                    onClick={() => copyToClipboard(customUrl || localIpUrl, 'custom')}
+                    className="text-[11px] flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold"
                   >
-                    {copiedPublic ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                    <span>{copiedPublic ? 'Copied' : 'Copy'}</span>
+                    {copiedCustom ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span>{copiedCustom ? 'Copied' : 'Copy'}</span>
                   </button>
                 </div>
-                <div className="font-mono text-blue-800 text-xs font-semibold select-all break-all">
-                  {publicHttpsUrl}
-                </div>
-                <div className="pt-1.5 border-t border-blue-100 flex items-center justify-between text-[11px]">
-                  <span className="text-slate-600">Tunnel Password (if asked):</span>
-                  <span className="font-mono font-bold bg-white px-2 py-0.5 rounded border border-blue-200 text-blue-900">
-                    {tunnelPassword}
-                  </span>
-                </div>
+                <input
+                  type="url"
+                  value={customUrl}
+                  onChange={(e) => setCustomUrl(e.target.value)}
+                  placeholder="https://your-tunnel.loca.lt or https://bolkhata.app"
+                  className="w-full bg-white px-2.5 py-1.5 rounded-lg border border-blue-300 text-xs font-mono font-semibold text-blue-900 focus:outline-none focus:border-blue-600"
+                />
+                <p className="text-[10px] text-blue-700 font-medium">
+                  URL पेस्ट करते ही ऊपर दिया गया QR कोड लाइव अपडेट हो जाएगा।
+                </p>
               </div>
               <p className="text-[11px] text-slate-500 text-center flex items-center justify-center gap-1">
                 <Mic className="w-3.5 h-3.5 text-emerald-600 inline" />
