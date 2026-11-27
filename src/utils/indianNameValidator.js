@@ -113,6 +113,43 @@ export const DEVANAGARI_NAME_DICTIONARY = {
   'नईम': 'Naeem',
   'शकील': 'Shakeel',
   'इकबाल': 'Iqbal',
+  'अब्दुल': 'Abdul',
+  'अब्दुल्ला': 'Abdullah',
+  'अमान': 'Aman',
+  'अयाज': 'Ayaz',
+  'अयान': 'Ayaan',
+  'कैफ': 'Kaif',
+  'फैज': 'Faiz',
+  'कबीर': 'Kabir',
+  'जफर': 'Zafar',
+  'हैदर': 'Haider',
+  'हुसैन': 'Hussain',
+  'हसन': 'Hasan',
+  'हबीब': 'Habib',
+  'नसीम': 'Naseem',
+  'शब्बीर': 'Shabbir',
+  'बशीर': 'Basheer',
+  'लतीफ': 'Lateef',
+  'मुजीब': 'Mujeeb',
+  'अनवर': 'Anwar',
+  'मंजूर': 'Manzoor',
+  'शमशेर': 'Shamsher',
+  'सलीम': 'Saleem',
+  'अब्बास': 'Abbas',
+  'मुस्तफा': 'Mustafa',
+  'आदिल': 'Adil',
+  'कासिम': 'Qasim',
+  'अलताफ': 'Altaf',
+  'इम्तियाज': 'Imtiyaz',
+  'अफताब': 'Aftab',
+  'शाहनवाज': 'Shahnawaz',
+  'शहबाज': 'Shahbaz',
+  'परवेज': 'Parvez',
+  'अरबाज': 'Arbaz',
+  'इरशाद': 'Irshad',
+  'शमशाद': 'Shamshad',
+  'दिलशाद': 'Dilshad',
+  'नौशाद': 'Naushad',
 
   // Hindu / Traditional Origin
   'सुरेश': 'Suresh',
@@ -209,20 +246,21 @@ export function cleanCustomerCandidateName(rawName) {
   // 1. Strip currency symbols, numbers, punctuation
   str = str.replace(/[₹$€£¥\d\.,\/#!$%\^&\*;:{}=\-_`~()\[\]<>?|\\+]/g, ' ').trim();
 
-  // 2. Strip leading conversational phrases & action words
-  str = str.replace(/^(?:naya\s+grahak|naye\s+grahak|naya\s+customer|naye\s+customer|naya\s+khata|new\s+customer|add\s+customer|नया\s*ग्राहक|नए\s*ग्राहक|नया\s*कस्टमर|नया\s*खाता|ग्राहक|कस्टमर)\s+/gi, '');
-  str = str.replace(/^(?:arre|suno|sun|bhai|hello|likho|likh\s*do|entry|entry\s*karo|dokan|dukaan|khata|khate\s*me)\s+/gi, '');
-  str = str.replace(/^(?:udhar|udhaar|jama|diya|diye|mila|mile|bheja|lena|dena|likho|rupaye|rs|cash|payment|credit|उधार|जमा|दिया|दिए|मिला|मिले|रुपये|रुपए|रुपया|कैश)\s+/gi, '');
-
-  // 3. Strip trailing grammatical particles, markers, currency words, and role words (repeat 3 times to peel chained suffixes like "में ₹" or "का बकाया")
-  const TRAILING_PATTERN = /\s+(?:grahak|customer|cust|khata|entry|bhai|bhaiya|ji|seth|chacha|uncle|aunty|sahab|saheb|babu|sir|number|phone|mobile|ko|ne|se|ka|ke|ki|me|mein|pe|par|to|from|in|on|at|for|wala|wali|baki|baaki|bakaya|pakaya|pabaya|rupaye|rs|paise|cash|payment|credit|udhar|udhaar|diya|diye|liya|liye|le|de|lena|dena|mila|mile|bheja|ग्राहक|कस्टमर|खाता|दुकान|भाई|भैया|जी|साहब|बाबू|अंकल|आंटी|सेठ|चाचा|नंबर|फोन|मोबाइल|को|ने|से|का|के|की|में|पे|पर|वाला|वाली|बाकी|बकाया|पकाया|उधार|जमा|दिया|दिए|लिया|लिए|ले|दे|रुपये|रुपए|रुपया|कैश)$/gi;
-
-  for (let pass = 0; pass < 3; pass++) {
-    str = str.trim().replace(TRAILING_PATTERN, '').trim();
+  // 2. Strip leading conversational phrases, role words, and speech recognition mis-transcriptions (like "नया ग्रह", "नया", "ग्रह")
+  for (let p = 0; p < 4; p++) {
+    str = str.replace(/^(?:naya\s+grahak|naye\s+grahak|naya\s+grah|naye\s+grah|naya\s+customer|naye\s+customer|naya\s+khata|new\s+customer|add\s+customer|naya\s+banda|naya\s+party|नया\s*ग्राहक|नए\s*ग्राहक|नया\s*ग्रह|नए\s*ग्रह|नया\s*कस्टमर|नए\s*कस्टमर|नया\s*खाता|नया\s*बंदा|नया\s*पार्टी|नया|नए|नई|new|naya|naye)\s+/gi, '').trim();
+    str = str.replace(/^(?:grahak|customer|grah|cust|party|banda|ग्राहक|कस्टमर|ग्रह|पार्टी|बंदा|खाता|दुकान)\s+/gi, '').trim();
+    str = str.replace(/^(?:arre|suno|sun|bhai|hello|likho|likh\s*do|entry|entry\s*karo|dokan|dukaan|khata|khate\s*me|अरे|सुनो|सुन|लिखो|लिख\s*दो|एंट्री)\s+/gi, '').trim();
+    str = str.replace(/^(?:udhar|udhaar|jama|diya|diye|mila|mile|bheja|lena|dena|likho|rupaye|rs|cash|payment|credit|उधार|जमा|दिया|दिए|मिला|मिले|रुपये|रुपए|रुपया|कैश)\s+/gi, '').trim();
+    str = str.replace(/^(?:में|ने|से|को|का|के|की|pe|par|me|mein)\s+/gi, '').trim();
   }
 
-  // 4. Strip if grammar postposition or role word is placed at start
-  str = str.replace(/^(?:grahak|customer|ग्राहक|कस्टमर|में|ने|से|को|का|के|की|pe|par|me|mein)\s+/gi, '');
+  // 3. Strip trailing grammatical particles, markers, currency words, and role words (repeat 4 times to peel chained suffixes like "में ₹" or "का बकाया")
+  const TRAILING_PATTERN = /\s+(?:grahak|customer|cust|grah|khata|entry|bhai|bhaiya|ji|seth|chacha|uncle|aunty|sahab|saheb|babu|sir|number|phone|mobile|ko|ne|se|ka|ke|ki|me|mein|pe|par|to|from|in|on|at|for|wala|wali|baki|baaki|bakaya|pakaya|pabaya|rupaye|rs|paise|cash|payment|credit|udhar|udhaar|diya|diye|liya|liye|le|de|lena|dena|mila|mile|bheja|le\s*gaya|le\s*gaye|le\s*liya|le\s*diya|ग्राहक|कस्टमर|ग्रह|खाता|दुकान|भाई|भैया|जी|साहब|बाबू|अंकल|आंटी|सेठ|चाचा|नंबर|फोन|मोबाइल|को|ने|से|का|के|की|में|पे|पर|वाला|वाली|बाकी|बकाया|पकाया|उधार|जमा|दिया|दिए|लिया|लिए|ले|दे|ले\s*गया|ले\s*गए|ले\s*लिया|रुपये|रुपए|रुपया|कैश)$/gi;
+
+  for (let pass = 0; pass < 4; pass++) {
+    str = str.trim().replace(TRAILING_PATTERN, '').trim();
+  }
 
   return str.replace(/\s+/g, ' ').trim();
 }
@@ -345,7 +383,9 @@ export function validateAndEnhanceIndianName(candidate, knownCustomers = []) {
     // Check multi-word Devanagari compound (e.g. "असलम खान")
     const JUNK_DEV_PARTICLES = new Set([
       'में', 'ने', 'से', 'को', 'का', 'के', 'की', 'पे', 'पर', 'वाला', 'वाली',
-      'बाकी', 'बकाया', 'पकाया', 'पबाया', 'लिया', 'दिया', 'दिए', 'रुपये', 'रुपए', 'रुपया', '₹', 'रू'
+      'बाकी', 'बकाया', 'पकाया', 'पबाया', 'लिया', 'दिया', 'दिए', 'ले', 'गया', 'गए', 'गई',
+      'रुपये', 'रुपए', 'रुपया', '₹', 'रू', 'नया', 'नए', 'नई', 'ग्रह', 'ग्राहक', 'कस्टमर', 'खाता',
+      'बंदा', 'पार्टी', 'भैया', 'भाई', 'जी', 'साहब', 'बाबू'
     ]);
     const devWords = cleaned.split(/\s+/).filter(Boolean).filter(w => !JUNK_DEV_PARTICLES.has(w));
     if (devWords.length === 0) {
@@ -392,7 +432,9 @@ export function validateAndEnhanceIndianName(candidate, knownCustomers = []) {
   const ACTION_WORDS = new Set([
     'udhar', 'udhaar', 'jama', 'diya', 'diye', 'mila', 'mile', 'bheja', 'lena', 'dena',
     'rupaye', 'rs', 'paise', 'cash', 'payment', 'credit', 'online', 'phone', 'entry',
-    'उधार', 'जमा', 'दिया', 'दिए', 'मिला', 'रुपये', 'रुपए', 'रुपया', 'कैश'
+    'naya', 'naye', 'new', 'grahak', 'grah', 'customer', 'cust', 'party', 'banda', 'khata',
+    'उधार', 'जमा', 'दिया', 'दिए', 'मिला', 'रुपये', 'रुपए', 'रुपया', 'कैश',
+    'नया', 'नए', 'नई', 'ग्रह', 'ग्राहक', 'कस्टमर', 'खाता', 'बंदा', 'पार्टी'
   ]);
   const rawWords = cleaned.split(/\s+/).filter(Boolean);
   const words = rawWords.filter(w => !ACTION_WORDS.has(w.toLowerCase()));
