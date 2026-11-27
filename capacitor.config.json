@@ -1,0 +1,8 @@
+{
+  "appId": "com.bolkhata.app",
+  "appName": "BolKhata",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
