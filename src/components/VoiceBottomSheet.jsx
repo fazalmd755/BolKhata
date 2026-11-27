@@ -230,14 +230,24 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
           setMicStatusText('सुन रहे हैं... रुकने पर 3.5 सेकंड में अपने आप दर्ज होगा');
 
           // Real-time AI extraction preview
+          let isComplete = false;
           try {
             const live = parseVoiceInput(recognized, customers);
             setLiveParsedPreview(live);
+            isComplete = live && (live.amount > 0 || live.intent === 'balance_query');
           } catch (e) {}
 
-          // Reset silence timer:
-          // Wait 3.5 seconds of silence AFTER speech before finalizing
-          // This gives shopkeepers plenty of time to pause, think or breathe
+          if (isComplete) {
+            setMicStatusText('पहचान पूरी हुई... रुकने पर 3.2s में स्वतः दर्ज होगा');
+          } else {
+            setMicStatusText('सुन रहे हैं... आराम से बोलें (5.5s इंतज़ार)');
+          }
+
+          // Adaptive silence timer:
+          // If transaction is complete (amount > 0 or balance query): wait 3.2s
+          // If transaction is incomplete (slow speaker pausing between words): wait 5.5s of patience!
+          const silenceDuration = isComplete ? 3200 : 5500;
+
           if (silenceTimerRef.current) {
             clearTimeout(silenceTimerRef.current);
           }
@@ -246,15 +256,20 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
               setMicStatusText('पहचान पूरी हुई, प्रोसेस हो रहा है...');
               handleStopListening(true);
             }
-          }, 3500);
+          }, silenceDuration);
         }
       };
 
       recognition.onspeechend = () => {
         // Do NOT abort or close! Web Speech fires this on pauses.
-        // We let the continuous engine and silenceTimerRef handle graceful completion.
+        // We let the continuous engine and adaptive silenceTimerRef handle graceful completion.
         if (latestSpeechRef.current) {
-          setMicStatusText('सुन रहे हैं... रुकने पर 3.5 सेकंड में दर्ज होगा');
+          const live = parseVoiceInput(latestSpeechRef.current, customers);
+          if (live && (live.amount > 0 || live.intent === 'balance_query')) {
+            setMicStatusText('पहचान पूरी हुई... (रुकने पर 3.2s में दर्ज होगा या तुरंत बटन दबाएं)');
+          } else {
+            setMicStatusText('सुन रहे हैं... आराम से पूरा बोलें, हम इंतज़ार कर रहे हैं');
+          }
         }
       };
 
@@ -613,8 +628,23 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
             {isListening ? <MicOff className="w-8 h-8" /> : <Mic className="w-8 h-8" />}
           </button>
 
+          {/* Animated Audio Equalizer Waveform while listening */}
+          {isListening && (
+            <div className="flex items-center justify-center gap-1 mt-3 py-1 animate-in fade-in">
+              <span className="w-1 bg-emerald-500 rounded-full animate-pulse h-3"></span>
+              <span className="w-1 bg-emerald-600 rounded-full animate-bounce h-5 delay-75"></span>
+              <span className="w-1 bg-emerald-500 rounded-full animate-pulse h-3.5 delay-100"></span>
+              <span className="w-1 bg-emerald-600 rounded-full animate-bounce h-7 delay-150"></span>
+              <span className="w-1 bg-emerald-500 rounded-full animate-pulse h-5 delay-200"></span>
+              <span className="w-1 bg-emerald-600 rounded-full animate-bounce h-7 delay-100"></span>
+              <span className="w-1 bg-emerald-500 rounded-full animate-pulse h-4 delay-75"></span>
+              <span className="w-1 bg-emerald-600 rounded-full animate-bounce h-5 delay-150"></span>
+              <span className="w-1 bg-emerald-500 rounded-full animate-pulse h-3"></span>
+            </div>
+          )}
+
           {/* Live Mic Status Indicator */}
-          <div className="mt-4 text-center px-4 max-w-sm">
+          <div className="mt-3 text-center px-4 max-w-sm">
             <div className={`text-xs font-bold ${isListening ? 'text-red-600' : 'text-slate-700'}`}>
               {micStatusText}
             </div>
@@ -663,7 +693,9 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
                 <span>खाता दर्ज करें (हो गया / Done)</span>
               </button>
               <span className="text-[10px] text-slate-500 font-medium">
-                💡 या 3.5s शांत रहें, अपने आप दर्ज हो जाएगा
+                {liveParsedPreview?.amount > 0
+                  ? '💡 रुकने पर 3 सेकंड में स्वतः दर्ज होगा, या तुरंत ऊपर बटन दबाएं'
+                  : '💡 धीमे या रुक कर बोल रहे हैं तो आराम से पूरा करें (5.5s इंतज़ार)'}
               </span>
             </div>
           )}

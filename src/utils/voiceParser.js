@@ -209,6 +209,55 @@ export function classifyIntent(text) {
 }
 
 /**
+ * Normalizes Indian English phonetic variations (e.g. ee <-> i, oo <-> u, sh <-> s, w <-> v)
+ */
+export function normalizeIndianPhonetics(str) {
+  if (!str) return '';
+  return str
+    .toLowerCase()
+    .replace(/[^\w\s\u0900-\u097F]/g, '')
+    .replace(/ee/g, 'i')
+    .replace(/oo/g, 'u')
+    .replace(/w/g, 'v')
+    .replace(/sh/g, 's')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Calculates Levenshtein-based phonetic string similarity (0.0 to 1.0)
+ */
+export function calculateFuzzySimilarity(s1, s2) {
+  if (!s1 || !s2) return 0;
+  const a = normalizeIndianPhonetics(s1);
+  const b = normalizeIndianPhonetics(s2);
+  if (a === b) return 1.0;
+  if (a.includes(b) || b.includes(a)) return 0.92;
+
+  const lenA = a.length;
+  const lenB = b.length;
+  const matrix = Array.from({ length: lenA + 1 }, () => Array(lenB + 1).fill(0));
+
+  for (let i = 0; i <= lenA; i++) matrix[i][0] = i;
+  for (let j = 0; j <= lenB; j++) matrix[0][j] = j;
+
+  for (let i = 1; i <= lenA; i++) {
+    for (let j = 1; j <= lenB; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      matrix[i][j] = Math.min(
+        matrix[i - 1][j] + 1,
+        matrix[i][j - 1] + 1,
+        matrix[i - 1][j - 1] + cost
+      );
+    }
+  }
+
+  const distance = matrix[lenA][lenB];
+  const maxLen = Math.max(lenA, lenB);
+  return 1 - distance / maxLen;
+}
+
+/**
  * Extracts customer name by checking known customers and grammar markers
  */
 export function extractCustomerName(text, knownCustomers = []) {
@@ -228,7 +277,7 @@ export function extractCustomerName(text, knownCustomers = []) {
     }
   }
 
-  // Step 1: Match against known customers first
+  // Step 1: Match against known customers (Exact -> First Name -> Phonetic -> Fuzzy)
   for (const cust of knownCustomers) {
     const custLower = cust.name.toLowerCase();
     const parts = custLower.split(/\s+/);
@@ -240,8 +289,33 @@ export function extractCustomerName(text, knownCustomers = []) {
 
     // Check first name match (e.g. "Ramesh" in "Ramesh Kirana" or "Mohan" in "Mohan Lal")
     const firstName = parts[0];
-    if (firstName.length >= 3 && new RegExp(`\\b${firstName}\\b`, 'i').test(lower)) {
+    if (firstName.length >= 3 && new RegExp(`(?:^|\\s)${firstName}(?:\\s|$)`, 'i').test(lower)) {
       return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id };
+    }
+
+    // Phonetic match for fast/colloquial speech (e.g. "aneeta" -> "anita", "puja" -> "pooja", "rames" -> "ramesh")
+    const normCust = normalizeIndianPhonetics(cust.name);
+    const normText = normalizeIndianPhonetics(text);
+    if (normText.includes(normCust)) {
+      return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id };
+    }
+
+    const normFirst = normalizeIndianPhonetics(firstName);
+    if (normFirst.length >= 3 && new RegExp(`(?:^|\\s)${normFirst}(?:\\s|$)`).test(normText)) {
+      return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id };
+    }
+  }
+
+  // Fuzzy word similarity for fast/slurred speech
+  const textWords = text.split(/\s+/);
+  for (const cust of knownCustomers) {
+    const custFirst = cust.name.split(/\s+/)[0];
+    if (custFirst.length >= 4) {
+      for (const w of textWords) {
+        if (w.length >= 3 && calculateFuzzySimilarity(w, custFirst) >= 0.80) {
+          return { customerName: cust.name, matchedKnown: true, customer: cust, customerId: cust.id };
+        }
+      }
     }
   }
 
