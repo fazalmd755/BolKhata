@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   X, 
   Check, 
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
 import confetti from 'canvas-confetti';
+import { validateAndEnhanceIndianName } from '../utils/indianNameValidator.js';
 
 export default function TransactionConfirmModal() {
   const { 
@@ -41,7 +42,11 @@ export default function TransactionConfirmModal() {
   // Sync state whenever modalPayload changes (fixes stuck 'credit' bug!)
   useEffect(() => {
     if (modalPayload && activeModal === 'confirm') {
-      setCustomerName(modalPayload.customerName || '');
+      const nameVal = validateAndEnhanceIndianName(modalPayload.customerName || '', customers);
+      const cleanName = (nameVal.isValid && nameVal.cleanName !== 'Customer') 
+        ? nameVal.cleanName 
+        : (modalPayload.customerName || '');
+      setCustomerName(cleanName);
       setPhone(modalPayload.customer ? modalPayload.customer.phone : (modalPayload.phone || ''));
       setAmount(modalPayload.amount || '');
       setType(modalPayload.type || 'credit');
@@ -53,7 +58,12 @@ export default function TransactionConfirmModal() {
       setNotes(modalPayload.notes || '');
       setIgnoreDuplicateWarning(false);
     }
-  }, [modalPayload, activeModal]);
+  }, [modalPayload, activeModal, customers]);
+
+  // AI Indian name reasoning & validation hook
+  const nameValidation = useMemo(() => {
+    return validateAndEnhanceIndianName(customerName, customers);
+  }, [customerName, customers]);
 
   // Early return ONLY AFTER all Hooks are called
   if (activeModal !== 'confirm' || !modalPayload) return null;
@@ -264,6 +274,23 @@ export default function TransactionConfirmModal() {
               className="w-full px-3 py-2 text-sm font-semibold rounded-xl border border-slate-300 focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600"
               placeholder="e.g. Ramesh Bhai"
             />
+            {customerName.trim() && (
+              <div className="flex items-center justify-between gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border bg-emerald-50/90 text-emerald-800 border-emerald-200 animate-in fade-in">
+                <div className="flex items-center gap-1.5 font-medium truncate">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>
+                    {nameValidation.isKnownCustomer 
+                      ? '✓ पंजीकृत खाता (Registered Khata)' 
+                      : (nameValidation.reasoning || 'AI प्रमाणित भारतीय नाम')}
+                  </span>
+                </div>
+                {nameValidation.isIndianNameMatch && !nameValidation.isKnownCustomer && (
+                  <span className="text-[10px] bg-emerald-200 text-emerald-900 font-bold px-1.5 py-0.5 rounded shrink-0">
+                    AI Filtered
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Customer Phone (especially helpful for new customers & WhatsApp reminders) */}
