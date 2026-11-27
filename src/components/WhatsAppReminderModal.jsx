@@ -12,6 +12,7 @@ import {
   ExternalLink 
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
+import { useTranslation } from '../i18n';
 import { REMINDER_TEMPLATES, createWhatsAppUrl, generateUpiLink } from '../utils/whatsapp';
 import { formatDisplayDate } from '../utils/dateUtils';
 
@@ -23,6 +24,7 @@ export default function WhatsAppReminderModal() {
     selectedCustomer, 
     shopSettings 
   } = useKhata();
+  const { t } = useTranslation();
 
   const customer = modalPayload?.customer || selectedCustomer;
 
@@ -90,7 +92,7 @@ export default function WhatsAppReminderModal() {
             </div>
             <div>
               <h2 className="text-base font-bold flex items-center gap-2">
-                <span>WhatsApp तकादा (Payment Reminder)</span>
+                <span>{t('whatsapp_reminder')}</span>
               </h2>
               <p className="text-xs text-white/80">
                 UPI पेमेंट लिंक के साथ डिजिटल तकादा भेजें
@@ -211,7 +213,7 @@ export default function WhatsAppReminderModal() {
               onClick={() => setActiveModal(null)}
               className="w-1/3 py-3 rounded-2xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50 transition"
             >
-              रद्द करें
+              {t('cancel')}
             </button>
 
             <button

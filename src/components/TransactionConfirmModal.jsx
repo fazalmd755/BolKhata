@@ -16,6 +16,7 @@ import {
   Users
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
+import { useTranslation } from '../i18n';
 import confetti from 'canvas-confetti';
 import { validateAndEnhanceIndianName, cleanCustomerCandidateName } from '../utils/indianNameValidator.js';
 import { parseRupees, isValidAmount } from '../utils/money.js';
@@ -28,6 +29,7 @@ export default function TransactionConfirmModal() {
     addTransaction, 
     customers 
   } = useKhata();
+  const { t } = useTranslation();
 
   // All Hooks MUST be declared unconditionally at the top of the component
   const [targetCustomerId, setTargetCustomerId] = useState(null);
@@ -266,7 +268,7 @@ export default function TransactionConfirmModal() {
                 }`}
               >
                 <ArrowUpRight className="w-4 h-4 text-red-500" />
-                <span>उधार दिया (Credit)</span>
+                <span>{t('credit_title')}</span>
               </button>
               <button
                 type="button"
@@ -278,7 +280,7 @@ export default function TransactionConfirmModal() {
                 }`}
               >
                 <ArrowDownLeft className="w-4 h-4 text-emerald-600" />
-                <span>जमा मिला (Got Payment)</span>
+                <span>{t('payment_title')}</span>
               </button>
             </div>
           </div>
@@ -286,7 +288,7 @@ export default function TransactionConfirmModal() {
           {/* Amount Input with big Rupee symbol */}
           <div>
             <label className="block text-xs font-semibold text-slate-600 mb-1">
-              राशि (Amount in ₹) *
+              {t('amount_rupees')} *
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 font-bold text-lg">
@@ -309,7 +311,7 @@ export default function TransactionConfirmModal() {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-semibold text-slate-600">
-                ग्राहक का नाम (Customer Name) *
+                {t('customer_name')} *
               </label>
               {isNewCustomer ? (
                 <span className="flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full">
@@ -492,7 +494,7 @@ export default function TransactionConfirmModal() {
               onClick={() => setActiveModal(null)}
               className="w-1/3 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-slate-50 transition"
             >
-              रद्द करें (Cancel)
+              {t('cancel')}
             </button>
 
             <button

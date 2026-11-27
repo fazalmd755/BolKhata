@@ -19,6 +19,7 @@ import {
   Radio
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
+import { useTranslation } from '../i18n';
 import { parseVoiceInput } from '../utils/voiceParser.js';
 import { extractNewCustomerIntent } from '../utils/aiConversationalEngine.js';
 import { playMicStartSound, playMicStopSound, playSuccessChime, speakText } from '../utils/soundEffects.js';
@@ -35,6 +36,7 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
     addNewCustomer,
     shopSettings 
   } = useKhata();
+  const { t } = useTranslation();
 
   const [manualText, setManualText] = useState('');
   const [showTextInput, setShowTextInput] = useState(false);
@@ -419,7 +421,7 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
                 className="px-6 py-2.5 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md flex items-center gap-1.5 transition active:scale-95 animate-in zoom-in-95 cursor-pointer"
               >
                 <Check className="w-4 h-4" />
-                <span>खाता दर्ज करें (हो गया / Done)</span>
+                <span>{t('record_entry')}</span>
               </button>
               <span className="text-[10px] text-slate-500 font-medium">
                 {liveParsedPreview?.amount > 0

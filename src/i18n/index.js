@@ -46,13 +46,22 @@ export const DICTIONARY = {
     voice_processing: 'पहचान रहे हैं...',
     voice_instruction: 'रुक-रुक कर आराम से बोलें, कट नहीं होगा',
     voice_long_session: 'लंबा सत्र (45s)',
+    record_entry: 'खाता दर्ज करें (हो गया / Done)',
+    tap_to_speak: 'माइक दबाकर बोलें (Tap to Speak)',
 
-    // Customer
+    // Customer & Modals
     new_customer: 'नया ग्राहक',
     add_customer: 'नया खाता जोड़ें',
     phone_number: 'मोबाइल नंबर',
     credit_limit: 'उधार सीमा (Limit)',
     address: 'पता / क्षेत्र',
+    transaction_type: 'लेन-देन प्रकार (Transaction Type)',
+    amount_rupees: 'राशि (Amount in ₹)',
+    customer_name: 'ग्राहक का नाम (Customer Name)',
+    whatsapp_reminder: 'व्हाट्सएप तगादा (WhatsApp Reminder)',
+    send_reminder: 'तगादा भेजें (Send WhatsApp)',
+    copy_message: 'मैसेज कॉपी करें',
+    copied: 'कॉपी हो गया!',
 
     // Settings
     settings_title: 'दुकान सेटिंग्स',
@@ -110,13 +119,22 @@ export const DICTIONARY = {
     voice_processing: 'Processing voice...',
     voice_instruction: 'Speak naturally at your own pace',
     voice_long_session: 'Extended session (45s)',
+    record_entry: 'Record Entry (Done)',
+    tap_to_speak: 'Tap Mic to Speak',
 
-    // Customer
+    // Customer & Modals
     new_customer: 'New Customer',
     add_customer: 'Add Customer Account',
     phone_number: 'Mobile Number',
     credit_limit: 'Credit Limit',
     address: 'Address / Area',
+    transaction_type: 'Transaction Type',
+    amount_rupees: 'Amount (in ₹)',
+    customer_name: 'Customer Name',
+    whatsapp_reminder: 'WhatsApp Reminder',
+    send_reminder: 'Send WhatsApp Reminder',
+    copy_message: 'Copy Message',
+    copied: 'Copied!',
 
     // Settings
     settings_title: 'Shop Settings',

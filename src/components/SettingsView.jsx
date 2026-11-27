@@ -25,6 +25,7 @@ import {
   WifiOff
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
+import { useTranslation } from '../i18n';
 import { toLocalDateKey } from '../utils/dateUtils';
 import { parseRupees } from '../utils/money';
 import { isValidUpiId } from '../utils/whatsapp';
@@ -33,6 +34,7 @@ import { getBackupStatus, exportCsvLedger, exportJsonBackup } from '../utils/bac
 
 export default function SettingsView() {
   const { customers, transactions, shopSettings, setShopSettings, resetToDemoData, restoreBackupData } = useKhata();
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({ ...shopSettings });
   const [saved, setSaved] = useState(false);
   const [upiError, setUpiError] = useState('');
@@ -141,7 +143,7 @@ export default function SettingsView() {
     <div className="space-y-4 pb-6">
       {/* Header */}
       <div>
-        <h2 className="text-base font-bold text-slate-900">दुकान प्रोफाइल एवं सेटिंग्स</h2>
+        <h2 className="text-base font-bold text-slate-900">{t('settings_title')}</h2>
         <p className="text-xs text-slate-500">Shop Profile & Preferences</p>
       </div>
 

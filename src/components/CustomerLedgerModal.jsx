@@ -21,6 +21,7 @@ import {
   History
 } from 'lucide-react';
 import { useKhata } from '../context/KhataContext';
+import { useTranslation } from '../i18n';
 import { formatDisplayDate, formatRelativeTime, isOverdue, getDaysOverdue } from '../utils/dateUtils';
 import { parseRupees, formatCurrency } from '../utils/money';
 
@@ -37,6 +38,7 @@ export default function CustomerLedgerModal() {
     getCustomerBalance,
     shopSettings 
   } = useKhata();
+  const { t: tr } = useTranslation();
 
   const [filterType, setFilterType] = useState('all'); // 'all' | 'credit' | 'payment'
   const [editingTxn, setEditingTxn] = useState(null); // { id, amount, type, notes }
@@ -338,7 +340,7 @@ export default function CustomerLedgerModal() {
                           {t.editedAt && (
                             <span className="text-[9px] font-semibold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded-md flex items-center gap-0.5">
                               <History className="w-2.5 h-2.5" />
-                              संशोधित (Edited)
+                              {tr('edited_badge')}
                             </span>
                           )}
                         </div>
@@ -393,13 +395,13 @@ export default function CustomerLedgerModal() {
                           onClick={() => setConfirmDeleteId(null)}
                           className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-600 font-semibold text-[11px]"
                         >
-                          रद्द करें
+                          {tr('cancel')}
                         </button>
                         <button
                           onClick={() => handleDelete(t.id)}
                           className="px-2.5 py-1 rounded-lg bg-red-600 text-white font-bold text-[11px] hover:bg-red-700 shadow-2xs"
                         >
-                          हटाएं (Delete)
+                          {tr('delete')}
                         </button>
                       </div>
                     </div>
