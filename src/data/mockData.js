@@ -172,7 +172,7 @@ export const INITIAL_TRANSACTIONS = [
     amount: 800,
     items: [],
     paymentMethod: 'UPI',
-    date: '2026-11-26T09:15:00.000Z', // Today!
+    date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // Today!
     dueDate: null,
     notes: 'Received via PhonePe UPI QR',
     rawVoiceCommand: 'Suresh ne 800 rupaye UPI kar diye'
@@ -228,7 +228,7 @@ export const INITIAL_TRANSACTIONS = [
     amount: 500,
     items: [],
     paymentMethod: 'Cash',
-    date: '2026-11-26T08:30:00.000Z', // Today!
+    date: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // Today!
     dueDate: null,
     notes: 'Morning payment',
     rawVoiceCommand: 'Anita Devi ne paanch sau rupaye jama kiye'

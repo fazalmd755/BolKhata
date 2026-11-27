@@ -30,7 +30,7 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
     setSelectedCustomerId, 
     setActiveModal, 
     setModalPayload,
-    shopSettings 
+    resetToDemoData
   } = useKhata();
 
   const { t, language } = useTranslation();
@@ -251,13 +251,19 @@ export default function HomeTab({ onOpenVoice, onGoToKhata, onGoToReports, onOpe
                 {language === 'en' ? 'Tap the mic to speak or add a customer' : 'माइक दबाकर बोलें या नया ग्राहक जोड़ें'}
               </p>
             </div>
-            <div className="flex items-center justify-center gap-2 pt-1">
+            <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
               <button
                 onClick={onOpenVoice}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition"
               >
                 <Mic className="w-3.5 h-3.5" />
                 <span>{t('instant_voice')}</span>
+              </button>
+              <button
+                onClick={resetToDemoData}
+                className="px-4 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition"
+              >
+                <span>{t('demo_data')}</span>
               </button>
             </div>
           </div>
