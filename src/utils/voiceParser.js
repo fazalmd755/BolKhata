@@ -37,7 +37,7 @@ const COMMON_KIRANA_ITEMS = [
 ];
 
 /**
- * Normalizes input text: replaces devanagari numerals, strips punctuation
+ * Normalizes input text: replaces devanagari numerals, de-slurs rapid speech compounds
  */
 export function normalizeText(text) {
   if (!text) return '';
@@ -45,7 +45,31 @@ export function normalizeText(text) {
   for (const [dev, eng] of Object.entries(DEVANAGARI_DIGITS)) {
     str = str.replaceAll(dev, eng);
   }
-  return str.trim();
+
+  // De-slur rapid speech compounds (splits connected postpositions and fast verbs)
+  str = str
+    // Separate attached postpositions from names (e.g. "rameshko" -> "ramesh ko", "nitinse" -> "nitin se")
+    .replace(/([a-zA-Z\u0900-\u097F]{2,})(ko|ne|se|ka|ke|ki|bhai|bhaiya|ji)\b/gi, '$1 $2')
+    // Slurred fast action verbs in Hinglish
+    .replace(/\b(udhar|udhaar)(diya|diye|de|do)\b/gi, '$1 $2')
+    .replace(/\b(jama)(kiya|kiye|kar|karo|mila|mile|hua)\b/gi, '$1 $2')
+    .replace(/\b(mil)(gaya|gya|gaye|gye|raha)\b/gi, '$1 $2')
+    .replace(/\b(aa)(gaya|gya|gaye|gye)\b/gi, '$1 $2')
+    .replace(/\b(de)(diya|diye)\b/gi, '$1 $2')
+    .replace(/\b(le)(liya|liye|gaya|gaye)\b/gi, '$1 $2')
+    .replace(/\b(khate)(me|mein|pe)\b/gi, '$1 $2')
+    .replace(/\b(bhej)(diya|diye)\b/gi, '$1 $2')
+    .replace(/\b(likh)(lo|do|le)\b/gi, '$1 $2')
+    // Devanagari slurred words
+    .replace(/([\u0900-\u097F]{2,})(को|ने|से|का|के|की|भाई|जी)\b/g, '$1 $2')
+    .replace(/(उधार)(दिया|दिए|दो)/g, '$1 $2')
+    .replace(/(जमा)(किया|किए|करो|मिला|मिले)/g, '$1 $2')
+    .replace(/(मिल)(गया|गए)/g, '$1 $2')
+    .replace(/(आ)(गया|गए)/g, '$1 $2')
+    .replace(/(दे)(दिया|दिए)/g, '$1 $2')
+    .replace(/(खाते)(में|पे)/g, '$1 $2');
+
+  return str.replace(/\s+/g, ' ').trim();
 }
 
 /**
@@ -256,10 +280,40 @@ export function extractCustomerName(text, knownCustomers = []) {
   const fromMatch = lower.match(/(?:from|se)\s+([a-zA-Z\u0900-\u097F]+)/i);
   if (fromMatch && fromMatch[1]) {
     const cap = fromMatch[1].charAt(0).toUpperCase() + fromMatch[1].slice(1);
-    return { customerName: cap, matchedKnown: false, customer: null, customerId: null };
+    return { customerName: cap, matchedKnown: false, customer: null, customerId: null, isNewCustomer: true };
   }
 
-  return { customerName: 'Customer', matchedKnown: false, customer: null, customerId: null };
+  // Step 4: Positional / Structural Name Extraction for New Customers
+  // When a merchant simply says "[Name] [Amount] [udhar/jama]" without "ko/ne/se"
+  // e.g. "Karan 500 udhar", "Rahul Sharma 1200 jama", "करन 500 उधार", "सोनू दो सौ जमा"
+  const amountOrKeywordPattern = /(?:\b\d+|\b(?:₹|rs|inr|rupaye|sau|hazar|doso|dosau|dosou|teenso|teensau|teensou|charso|chaarso|panso|paanso|panchso|paanchso|chhehso|saatso|aathso|nauso|dedhso|dhaiso|udhar|udhaar|jama|cash|payment|credit|baki|baaki)\b|(?:^|\s)(?:दोसौ|तीनसौ|चारसौ|पांचसौ|पाँचसौ|छहसौ|सातसौ|आठसौ|नौसौ|डेढ़सौ|ढाईसौ|दो\s*सौ|तीन\s*सौ|चार\s*सौ|पांच\s*सौ|पाँच\s*सौ|दो|तीन|चार|पांच|पाँच|छह|सात|आठ|नौ|दस|बीस|तीस|चालीस|पचास|सौ|हज़ार|हजार|लाख|उधार|जमा|कैश|रुपये|रुपए|रुपया)(?:\s|$))/i;
+  
+  const amountIndex = text.search(amountOrKeywordPattern);
+  if (amountIndex > 0) {
+    let candidateName = text.substring(0, amountIndex).trim();
+    // Strip leading filler words
+    candidateName = candidateName
+      .replace(/^(?:aaj|kal|parson|sun|suno|arre|hello|bhai|ji|bhaiya|likho|likh\s*do|entry|entry\s*karo|dokan|dukaan|khata|khate\s*me|नया|नए|नई|new|naya)\s+/gi, '')
+      .replace(/\s+(?:ko|ne|ka|ke|se|to|from)$/i, '')
+      .trim();
+
+    // Must be 1 to 3 words and at least 2 characters long, not pure numbers or intent words
+    const words = candidateName.split(/\s+/).filter(Boolean);
+    if (words.length >= 1 && words.length <= 3 && candidateName.length >= 2) {
+      if (!/^(?:udhaar|udhar|jama|cash|payment|credit|balance|rupaye|hisaab|samaan|baki|baaki|उधार|जमा|कैश|हिसाब|सामान)$/i.test(candidateName)) {
+        const formatted = words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        return {
+          customerName: formatted,
+          matchedKnown: false,
+          customer: null,
+          customerId: null,
+          isNewCustomer: true
+        };
+      }
+    }
+  }
+
+  return { customerName: 'Customer', matchedKnown: false, customer: null, customerId: null, isNewCustomer: false };
 }
 
 /**
@@ -339,6 +393,15 @@ export function parseVoiceInput(transcript, knownCustomers = []) {
   const paymentMethod = intentResult.intent === 'payment' ? extractPaymentMethod(clean) : 'Khata';
   const dueDate = parseRelativeDate(clean, intentResult.intent);
 
+  // Extract 10-digit mobile number if spoken
+  let phone = '';
+  const phoneMatch = clean.match(/(?:\+?91[\-\s]?)?([6-9]\d{9})\b/);
+  if (phoneMatch) {
+    phone = phoneMatch[1];
+  }
+
+  const isNewCust = Boolean(!customerResult.matchedKnown && customerResult.customerName && customerResult.customerName !== 'Customer');
+
   return {
     success: true,
     rawTranscript: transcript,
@@ -350,12 +413,13 @@ export function parseVoiceInput(transcript, knownCustomers = []) {
     matchedKnownCustomer: customerResult.matchedKnown,
     customerId: customerResult.customerId,
     customer: customerResult.customer,
+    phone: phone || (customerResult.customer ? customerResult.customer.phone : ''),
     amount: amountResult.amount || 0,
     items: items.length > 0 ? items : (intentResult.intent === 'credit' ? ['Kirana General'] : []),
     itemsString: items.length > 0 ? items.join(', ') : '',
     paymentMethod,
     dueDate,
-    isNewCustomer: !customerResult.matchedKnown,
+    isNewCustomer: isNewCust,
     timestamp: new Date().toISOString()
   };
 }

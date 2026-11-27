@@ -71,6 +71,31 @@ export const HINDI_WORDS_MAP = {
   // Higher tens
   'पचपन': 55, 'साठ': 60, 'पैंसठ': 65, 'सत्तर': 70, 'पचहत्तर': 75,
   'अस्सी': 80, 'पचासी': 85, 'नब्बे': 90, 'पंचानवे': 95,
+  // Single units
+  'सौ': 100, 'sau': 100, 'हजार': 1000, 'हज़ार': 1000, 'hazar': 1000, 'hazaar': 1000, 'lakh': 100000, 'लाख': 100000
+};
+
+// Slurred fast-spoken compounds common when merchants speak rapidly
+export const HINDI_FAST_NUMBER_MAP = {
+  // Fast spoken hundreds (200 - 900)
+  'ekso': 100, 'eksau': 100, 'eksou': 100, 'एकसौ': 100,
+  'doso': 200, 'dosau': 200, 'dosou': 200, 'दोसौ': 200,
+  'teenso': 300, 'teensau': 300, 'teensou': 300, 'तीनसौ': 300,
+  'charso': 400, 'chaarso': 400, 'chaarsau': 400, 'chaarsou': 400, 'चारसौ': 400,
+  'panso': 500, 'paanso': 500, 'panchso': 500, 'paanchso': 500, 'panchsau': 500, 'paanchsau': 500, 'panchsou': 500, 'paanchsou': 500, 'पांचसौ': 500, 'पाँचसौ': 500,
+  'chhehso': 600, 'chehso': 600, 'chhaso': 600, 'छहसौ': 600,
+  'saatso': 700, 'satso': 700, 'saatsou': 700, 'सातसौ': 700,
+  'aathso': 800, 'athso': 800, 'aathsou': 800, 'आठसौ': 800,
+  'nauso': 900, 'nawso': 900, 'nausou': 900, 'नौसौ': 900,
+  'dedhso': 150, 'derhso': 150, 'dedhsou': 150, 'डेढ़सौ': 150,
+  'dhaiso': 250, 'dhaayiso': 250, 'dhaisou': 250, 'ढाईसौ': 250,
+  // Fast spoken thousands (1000 - 10000)
+  'ekhazar': 1000, 'ekhazaar': 1000, 'एकहजार': 1000,
+  'dohazar': 2000, 'dohazaar': 2000, 'दोहजार': 2000,
+  'teenhazar': 3000, 'teenhazaar': 3000, 'तीन्हजार': 3000,
+  'charhazar': 4000, 'chaarhazar': 4000, 'चारहजार': 4000,
+  'panchhazar': 5000, 'paanchhazar': 5000, 'पांचहजार': 5000,
+  'dashazar': 10000, 'दसहजार': 10000,
 };
 
 /**
@@ -92,6 +117,20 @@ export function parseHindiSpokenNumber(text) {
   // so they are never mistakenly parsed as transaction amounts!
   clean = clean.replace(/(?:phone|mobile|mob|no|number|फोन|मोबाइल|नंबर)?\s*(?:\+?91[\-\s]?)?[6-9]\d{9}\b/gi, ' ');
   clean = clean.replace(/\s+/g, ' ').trim();
+
+  // Fast check: Rapid colloquial speech compound numbers (e.g. doso, paanso, dedhso, ekhazar)
+  for (const [fastWord, fastVal] of Object.entries(HINDI_FAST_NUMBER_MAP)) {
+    if (new RegExp(`(?:^|\\s)${fastWord}(?:\\s|$)`, 'i').test(clean)) {
+      return fastVal;
+    }
+  }
+
+  // Fast check: "2k", "2.5k", "5k" notation
+  const kMatch = clean.match(/(?:^|\s)(\d+(?:\.\d+)?)\s*k\b/i);
+  if (kMatch) {
+    const kVal = parseFloat(kMatch[1]) * 1000;
+    if (kVal > 0) return kVal;
+  }
 
   // Check 1: Direct digits (₹2500, 2500 rs, 2,500, 450.50)
   const directDigitMatch = clean.match(/(?:₹|rs\.?|inr|रू|रुपये|रुपए|रुपया)?\s*(\d+(?:,\d+)*(?:\.\d+)?)\s*(?:₹|rs\.?|inr|\/-|रू|रुपये|रुपए|रुपया|(?:\s|$))/i);

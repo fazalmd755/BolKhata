@@ -380,7 +380,9 @@ export default function TransactionConfirmModal() {
               } disabled:bg-slate-300 disabled:shadow-none`}
             >
               <Check className="w-4 h-4" />
-              <span>खाते में दर्ज करें (Save Entry)</span>
+              <span>
+                {isNewCustomer ? 'ग्राहक जोड़ें और सुरक्षित करें (Save & Add Customer)' : 'खाते में दर्ज करें (Save Entry)'}
+              </span>
             </button>
           </div>
         </form>

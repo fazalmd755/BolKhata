@@ -20,8 +20,9 @@ import {
 import { useKhata } from '../context/KhataContext';
 import { parseVoiceInput } from '../utils/voiceParser.js';
 import { extractNewCustomerIntent } from '../utils/aiConversationalEngine.js';
-import { playMicStartSound, playMicStopSound, speakText } from '../utils/soundEffects.js';
+import { playMicStartSound, playMicStopSound, playSuccessChime, speakText } from '../utils/soundEffects.js';
 import { DEMO_VOICE_COMMANDS } from '../data/mockData.js';
+import confetti from 'canvas-confetti';
 
 export default function VoiceBottomSheet({ isOpen, onClose }) {
   const { 
@@ -29,6 +30,7 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
     setActiveModal, 
     setModalPayload, 
     checkDuplicateTransaction,
+    addNewCustomer,
     shopSettings 
   } = useKhata();
 
@@ -182,6 +184,8 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
       recognition.onresult = (event) => {
         let currentFinal = '';
         let currentInterim = '';
+        let bestAlternativeText = '';
+        let bestAlternativeScore = -1;
 
         for (let i = 0; i < event.results.length; i++) {
           const res = event.results[i];
@@ -190,10 +194,34 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
           } else {
             currentInterim += res[0].transcript;
           }
+
+          // Evaluate speech alternatives (critical for fast speech where alternative 1/2 is cleaner)
+          for (let a = 0; a < res.length; a++) {
+            const alt = res[a].transcript;
+            if (alt) {
+              const testParsed = parseVoiceInput(alt, customers);
+              let score = 0;
+              if (testParsed.amount > 0) score += 50;
+              if (testParsed.matchedKnownCustomer) score += 40;
+              else if (testParsed.customerName && testParsed.customerName !== 'Customer') score += 35;
+              if (testParsed.intent === 'credit' || testParsed.intent === 'payment') score += 20;
+              if (testParsed.items && testParsed.items.length > 0) score += 10;
+              if (res[a].confidence) score += Math.round(res[a].confidence * 15);
+
+              if (score > bestAlternativeScore) {
+                bestAlternativeScore = score;
+                bestAlternativeText = alt;
+              }
+            }
+          }
         }
 
+        const candidateText = (bestAlternativeScore >= 50 && bestAlternativeText)
+          ? bestAlternativeText
+          : (currentFinal + currentInterim);
+
         // Combine previously accumulated text (if browser restarted) with new text
-        const recognized = ((accumulatedTextRef.current ? accumulatedTextRef.current + ' ' : '') + currentFinal + currentInterim).trim();
+        const recognized = ((accumulatedTextRef.current ? accumulatedTextRef.current + ' ' : '') + candidateText).trim();
 
         if (recognized) {
           latestSpeechRef.current = recognized;
@@ -395,18 +423,44 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
           }
           return;
         } else {
-          // Pure new customer creation
-          setModalPayload({
-            defaultTab: 'new_customer',
-            prefillName: newCust.name,
-            prefillPhone: newCust.phone || '',
-            rawText: text
+          // Pure new customer creation (e.g. "naya customer nitin 9876543210")
+          const addRes = addNewCustomer({
+            name: newCust.name,
+            phone: newCust.phone || '',
+            openingBalance: 0,
+            notes: 'Added via Voice Command'
           });
-          setActiveModal('manual_entry');
-          if (shopSettings.voiceReadoutEnabled) {
-            speakText(`${newCust.name} का नया खाता फॉर्म खोल दिया गया है।`, language);
+
+          if (addRes && (addRes.success || addRes.customer)) {
+            try {
+              confetti({ particleCount: 50, spread: 70, origin: { y: 0.7 } });
+            } catch (e) {}
+            if (shopSettings.soundEnabled) {
+              playSuccessChime();
+            }
+            if (shopSettings.voiceReadoutEnabled) {
+              speakText(`नया ग्राहक ${newCust.name} खाता बही में जोड़ दिया गया है।`, language);
+            }
+            return;
+          } else if (addRes && addRes.isExisting) {
+            if (shopSettings.voiceReadoutEnabled) {
+              speakText(`${newCust.name} का खाता पहले से मौजूद है।`, language);
+            }
+            return;
+          } else {
+            // Fallback: open manual entry prefilled
+            setModalPayload({
+              defaultTab: 'new_customer',
+              prefillName: newCust.name,
+              prefillPhone: newCust.phone || '',
+              rawText: text
+            });
+            setActiveModal('manual_entry');
+            if (shopSettings.voiceReadoutEnabled) {
+              speakText(`${newCust.name} का नया खाता फॉर्म खोल दिया गया है।`, language);
+            }
+            return;
           }
-          return;
         }
       }
 
@@ -435,6 +489,8 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
           c.name.toLowerCase().includes(parsed.customerName.toLowerCase())
         );
 
+        const isNewCust = Boolean(!matchedCust && parsed.customerName && parsed.customerName !== 'Customer');
+
         const dupCheck = checkDuplicateTransaction(
           matchedCust ? matchedCust.id : null,
           parsed.amount,
@@ -447,7 +503,8 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
           customer: matchedCust || null,
           customerId: matchedCust ? matchedCust.id : null,
           customerName: matchedCust ? matchedCust.name : parsed.customerName,
-          isNewCustomer: !matchedCust,
+          phone: parsed.phone || (matchedCust ? matchedCust.phone : ''),
+          isNewCustomer: isNewCust,
           amount: parsed.amount || '',
           type: parsed.intent || 'credit',
           items: parsed.items || [],
@@ -459,6 +516,10 @@ export default function VoiceBottomSheet({ isOpen, onClose }) {
           duplicateMessage: dupCheck.message || ''
         });
         setActiveModal('confirm');
+
+        if (shopSettings.voiceReadoutEnabled && isNewCust) {
+          speakText(`नया ग्राहक ${parsed.customerName} के लिए ${parsed.amount} रुपये की पुष्टि करें।`, language);
+        }
       }
     } catch (err) {
       console.error('Error processing command:', err);
